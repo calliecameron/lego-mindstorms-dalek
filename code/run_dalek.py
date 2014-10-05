@@ -11,6 +11,8 @@ def getch():
     try:
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
+    except KeyboardInterrupt:
+        raise
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
@@ -41,13 +43,15 @@ try:
         elif cmd == "s" or cmd == "S":
             d.stop()
         elif cmd == "q":
-            d.head.rotate(-20)
+            d.head.rotate(-45)
         elif cmd == "e":
-            d.head.rotate(20)
+            d.head.rotate(45)
         elif cmd == "z":
             d.head.rotate_to(0)
-        elif cmd == " ":
+        elif cmd == "r":
             d.exterminate()
+        elif cmd == "f":
+            d.fire()
         elif cmd == "p":
             break
 

@@ -74,10 +74,14 @@ class Dalek(object):
     def play_sound(self, sound):
         path = os.path.join(self.sounds_dir, sound + ".wav")
         if os.path.exists(path):
-            subprocess.Popen(["aplay", path])
+            with open("/dev/null", "w") as devnull:
+                subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
 
     def exterminate(self):
         self.play_sound("exterminate")
+
+    def fire(self):
+        self.play_sound("gun")
 
 
 class Head(object):
