@@ -61,13 +61,13 @@ class Head(object):
         self.head_motor.regulation_mode = "off"
         self.head_motor.stop_mode = "coast"
 
-        self.head_motor.duty_cycle_sp = 50
+        self.head_motor.duty_cycle_sp = 75
         self.head_motor.start()
         time.sleep(2)
         self.head_motor.stop()
         pos1 = self.head_motor.position
 
-        self.head_motor.duty_cycle_sp = -50
+        self.head_motor.duty_cycle_sp = -75
         self.head_motor.start()
         time.sleep(2)
         self.head_motor.stop()
@@ -83,3 +83,22 @@ class Head(object):
         time.sleep(2)
         self.head_motor.stop()
         self.head_motor.position = 0
+        self.head_motor.stop_mode = "brake"
+
+    def rotate_to(self, pos):
+        if pos > 135:
+            pos = 135
+        elif pos < -135:
+            pos = -135
+
+        self.head_motor.regulation_mode = "on"
+        self.head_motor.stop_mode = "hold"
+        self.head_motor.ramp_up_sp = 500
+        self.head_motor.ramp_down_sp = 200
+        self.head_motor.run_position_limited(pos, 400)
+        time.sleep(2)
+        self.head_motor.stop()
+        self.head_motor.stop_mode = "brake"
+
+    def rotate(self, deg):
+        self.rotate_to(self.head_motor.position + deg)
