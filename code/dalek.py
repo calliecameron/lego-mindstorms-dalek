@@ -1,9 +1,12 @@
 """Dalek control classes."""
 
 import time
+import os.path
+import subprocess
 from ev3.lego import LargeMotor, MediumMotor
 
 DRIVE_SPEED = -700
+TURN_SPEED = -500
 
 
 class Dalek(object):
@@ -45,9 +48,32 @@ class Dalek(object):
         self.left_wheel.start()
         self.right_wheel.start()
 
+    def turn_left(self, factor=1.0):
+        factor = self.clamp_percent(factor)
+        self.left_wheel.pulses_per_second_sp = factor * -TURN_SPEED
+        self.right_wheel.pulses_per_second_sp = factor * TURN_SPEED
+        self.left_wheel.start()
+        self.right_wheel.start()
+
+    def turn_right(self, factor=1.0):
+        factor = self.clamp_percent(factor)
+        self.left_wheel.pulses_per_second_sp = factor * TURN_SPEED
+        self.right_wheel.pulses_per_second_sp = factor * -TURN_SPEED
+        self.left_wheel.start()
+        self.right_wheel.start()
+
     def stop(self):
         self.left_wheel.stop()
         self.right_wheel.stop()
+
+    def play_sound(self, sound):
+        path = os.path.join(self.sounds_dir, sound + ".wav")
+        if os.path.exists(path):
+            subprocess.Popen(["aplay", path])
+
+    def exterminate(self):
+        self.play_sound("exterminate")
+
 
 class Head(object):
     """Dalek's head."""
@@ -61,13 +87,13 @@ class Head(object):
         self.head_motor.regulation_mode = "off"
         self.head_motor.stop_mode = "coast"
 
-        self.head_motor.duty_cycle_sp = 75
+        self.head_motor.duty_cycle_sp = 65
         self.head_motor.start()
         self.wait_for_stop()
         self.head_motor.stop()
         pos1 = self.head_motor.position
 
-        self.head_motor.duty_cycle_sp = -75
+        self.head_motor.duty_cycle_sp = -65
         self.head_motor.start()
         self.wait_for_stop()
         self.head_motor.stop()
@@ -86,6 +112,7 @@ class Head(object):
         self.head_motor.stop_mode = "brake"
 
     def wait_for_stop(self):
+        time.sleep(0.5)
         while self.head_motor.pulses_per_second != 0:
             time.sleep(0.1)
 
