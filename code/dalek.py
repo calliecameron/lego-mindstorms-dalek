@@ -7,6 +7,7 @@ from ev3.lego import LargeMotor, MediumMotor
 
 DRIVE_SPEED = -700
 TURN_SPEED = -500
+SNAPSHOT_NAME = "image.jpeg"
 
 def clamp_percent(factor):
     if factor < 0.0:
@@ -82,6 +83,14 @@ class Dalek(object):
 
     def fire(self):
         self.play_sound("gun")
+
+    def take_picture(self):
+        if os.path.exists(os.path.join("dev", "video0")):
+            with open("/dev/null", "w") as devnull:
+                subprocess.call(["streamer", "-s", "800x600", "-o", SNAPSHOT_NAME], stdout=devnull, stderr=devnull)
+                print "Saved as " + SNAPSHOT_NAME
+        else:
+            print "No webcam detected"
 
 
 class Head(object):
