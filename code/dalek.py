@@ -60,12 +60,19 @@ class Head(object):
         self.head_motor.reset()
         self.head_motor.regulation_mode = "off"
         self.head_motor.stop_mode = "coast"
-        self.head_motor.duty_cycle_sp = 75
+
+        self.head_motor.duty_cycle_sp = 50
+        self.head_motor.start()
         time.sleep(2)
+        self.head_motor.stop()
         pos1 = self.head_motor.position
-        self.head_motor.duty_cycle_sp = -75
+
+        self.head_motor.duty_cycle_sp = -50
+        self.head_motor.start()
         time.sleep(2)
+        self.head_motor.stop()
         pos2 = self.head_motor.position
+
         midpoint = (pos1 + pos2) / 2.0
 
         self.head_motor.regulation_mode = "on"
@@ -73,4 +80,6 @@ class Head(object):
         self.head_motor.ramp_up_sp = 500
         self.head_motor.ramp_down_sp = 200
         self.head_motor.run_position_limited(midpoint, 400)
+        time.sleep(2)
+        self.head_motor.stop()
         self.head_motor.position = 0
