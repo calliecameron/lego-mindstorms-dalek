@@ -17,7 +17,7 @@ def clamp_percent(factor):
         return factor
 
 def wait_for_stop(motor):
-    time.sleep(0.5)
+    time.sleep(1)
     while motor.pulses_per_second != 0:
         time.sleep(0.1)
 
