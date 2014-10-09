@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""Use this script to control the Dalek from a shell on the Dalek
+itself (i.e. through an SSH session). Controls are different from (and
+less intuitive than) the pygame-based remote controller."""
 
 import sys
 import termios
@@ -19,6 +22,8 @@ def getch():
 
 sound_dir = sys.argv[1]
 d = Dalek(sound_dir)
+
+print "Dalek controller: press 'p' to exit (note that Ctrl-C doesn't work!)"
 
 try:
     while True:

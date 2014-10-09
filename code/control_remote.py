@@ -4,14 +4,13 @@ import sys
 import pygame
 import time
 from Mastermind import *
-from dalek import DALEK_PORT
 
 pygame.init()
 screen = pygame.display.set_mode((320, 240))
 font = pygame.font.Font(None, 40)
 text = ""
 sock = MastermindClientTCP()
-sock.connect(sys.argv[1], DALEK_PORT)
+sock.connect(sys.argv[1], 12345)
 
 while True:
     for event in pygame.event.get():

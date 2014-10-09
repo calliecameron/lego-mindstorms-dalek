@@ -1,11 +1,12 @@
+"""Main logic for the Dalek. Use one of the other scripts to actually control it."""
+
 import threading
 import time
-from ev3.lego import LargeMotor, MediumMotor
+from ev3.lego import LargeMotor, TouchSensor
 
 TICK_LENGTH_SECONDS = 0.1
 DRIVE_SPEED = -700
 TURN_SPEED = -500
-DALEK_PORT = 12345
 
 def clamp_percent(factor):
     factor = float(factor)
@@ -57,13 +58,21 @@ class EventQueue(object):
 
     def process(self):
         self.lock.acquire()
+        self.pre_process()
         i = 0
         while i < len(self.queue):
             if self.queue[i]():
                 i += 1
             else:
                 del self.queue[i]
+        self.post_process()
         self.lock.release()
+
+    def pre_process(self):
+        pass
+
+    def post_process(self):
+        pass
 
 
 class Drive(EventQueue):
@@ -79,6 +88,7 @@ class Drive(EventQueue):
 
         self.left_wheel = init_wheel("D")
         self.right_wheel = init_wheel("A")
+        self.touch_sensor = TouchSensor(2)
 
     def drive_action(self, speed):
         def action():
@@ -101,6 +111,10 @@ class Drive(EventQueue):
             self.left_wheel.stop()
             self.right_wheel.stop()
         return action
+
+    def pre_process(self):
+        if self.touch_sensor.is_pushed:
+            self.shutdown()
 
     def forward(self, factor=1.0):
         self.replace(self.drive_action(clamp_percent(factor) * DRIVE_SPEED))
@@ -127,6 +141,7 @@ class ControllerThread(threading.Thread):
     def __init__(self, parent):
         super(ControllerThread, self).__init__()
         self.parent = parent
+        self.daemon = True
 
     def run(self):
         while True:
