@@ -4,13 +4,14 @@ import sys
 import pygame
 import time
 from Mastermind import *
+from dalek import DALEK_PORT
 
 pygame.init()
 screen = pygame.display.set_mode((320, 240))
 font = pygame.font.Font(None, 40)
 text = ""
 sock = MastermindClientTCP()
-sock.connect("192.168.0.11", 12345)
+sock.connect(sys.argv[1], DALEK_PORT)
 
 while True:
     for event in pygame.event.get():
@@ -18,15 +19,15 @@ while True:
             sys.exit(0)
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
-            if event.key == pygame.key.K_w:
+            if event.key == pygame.K_w:
                 sock.send("forward\n")
-            elif event.key == pygame.key.K_s:
+            elif event.key == pygame.K_s:
                 sock.send("reverse\n")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
-            if event.key == pygame.key.K_w:
+            if event.key == pygame.K_w:
                 sock.send("stop\n")
-            elif event.key == pygame.key.K_s:
+            elif event.key == pygame.K_s:
                 sock.send("stop\n")
 
     screen.fill((255, 255, 255))

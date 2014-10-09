@@ -26,7 +26,7 @@ class Server(MastermindServerTCP):
                 factor = 1.0
             self.d.drive.reverse(factor)
         elif cmd[0] == "stop":
-            self.d.drive.stop(factor)
+            self.d.drive.stop()
 
         return super(Server, self).callback_client_handle(connection_object, data)
 
@@ -36,5 +36,7 @@ d = Dalek(sound_dir)
 try:
     Server(d)
 finally:
+    print "foo"
     d.shutdown()
     sys.exit(0)
+    print "bar"
