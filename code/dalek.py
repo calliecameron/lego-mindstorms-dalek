@@ -5,6 +5,7 @@ from ev3.lego import LargeMotor, MediumMotor
 TICK_LENGTH_SECONDS = 0.1
 DRIVE_SPEED = -700
 TURN_SPEED = -500
+DALEK_PORT = 12345
 
 def clamp_percent(factor):
     factor = float(factor)
@@ -141,3 +142,6 @@ class Dalek(object):
         self.drive = Drive()
         self.thread = ControllerThread(self)
         self.thread.start()
+
+    def shutdown(self):
+        self.drive.shutdown()

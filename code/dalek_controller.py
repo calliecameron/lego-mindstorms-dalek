@@ -18,10 +18,16 @@ while True:
             sys.exit(0)
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
-            sock.send(text + "\n")
+            if event.key == pygame.key.K_w:
+                sock.send("forward\n")
+            elif event.key == pygame.key.K_s:
+                sock.send("reverse\n")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
-            sock.send(text + "\n")
+            if event.key == pygame.key.K_w:
+                sock.send("stop\n")
+            elif event.key == pygame.key.K_s:
+                sock.send("stop\n")
 
     screen.fill((255, 255, 255))
     disp = font.render(text, True, (0, 0, 0))

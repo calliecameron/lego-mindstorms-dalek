@@ -56,7 +56,5 @@ try:
             break
 
 finally:
-    d.drive.shutdown()
-    print "exit"
+    d.shutdown()
     sys.exit(0)
-    print "argh"
