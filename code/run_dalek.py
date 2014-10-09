@@ -56,4 +56,6 @@ try:
             break
 
 finally:
-    d.drive.stop()
+    d.drive.shutdown()
+    sys.exit(0)
+    

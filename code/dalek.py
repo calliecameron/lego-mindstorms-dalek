@@ -36,9 +36,22 @@ class EventQueue(object):
         self.queue = []
         self.lock = threading.RLock()
 
-    def add(self, e):
+    def add(self, *events):
         self.lock.acquire()
-        self.queue.append(e)
+        for e in events:
+            self.queue.append(e)
+        self.lock.release()
+
+    def clear(self):
+        self.lock.acquire()
+        self.queue = []
+        self.lock.release()
+
+    def replace(self, *events):
+        self.lock.acquire()
+        self.queue = []
+        for e in events:
+            self.queue.append(e)
         self.lock.release()
 
     def process(self):
@@ -51,10 +64,6 @@ class EventQueue(object):
                 del self.queue[i]
         self.lock.release()
 
-    def clear(self):
-        self.lock.acquire()
-        self.queue = []
-        self.lock.release()
 
 class Drive(EventQueue):
     def __init__(self):
@@ -76,7 +85,7 @@ class Drive(EventQueue):
             self.right_wheel.pulses_per_second_sp = speed
             self.left_wheel.start()
             self.right_wheel.start()
-        self.add(action)
+        return action
 
     def turn_action(self, left_speed, right_speed):
         def action():
@@ -84,32 +93,35 @@ class Drive(EventQueue):
             self.right_wheel.pulses_per_second_sp = right_speed
             self.left_wheel.start()
             self.right_wheel.start()
-        self.add(action)
+        return action
 
-    def forward(self, factor=1.0):
-        self.clear()
-        self.drive_action(clamp_percent(factor) * DRIVE_SPEED)
-
-    def reverse(self, factor=1.0):
-        self.clear()
-        self.drive_action(clamp_percent(factor) * -DRIVE_SPEED)
-
-    def turn_left(self, factor=1.0):
-        self.clear()
-        factor = clamp_percent(factor)
-        self.turn_action(factor * -TURN_SPEED, factor * TURN_SPEED)
-
-    def turn_right(self, factor=1.0):
-        self.clear()
-        factor = clamp_percent(factor)
-        self.turn_action(factor * TURN_SPEED, factor * -TURN_SPEED)
-
-    def stop(self):
-        self.clear()
+    def stop_action(self):
         def action():
             self.left_wheel.stop()
             self.right_wheel.stop()
-        self.add(action)
+        return action
+
+    def forward(self, factor=1.0):
+        self.replace(self.drive_action(clamp_percent(factor) * DRIVE_SPEED))
+
+    def reverse(self, factor=1.0):
+        self.replace(self.drive_action(clamp_percent(factor) * -DRIVE_SPEED),
+                     RunAfter(5, self.stop_action()))
+
+    def turn_left(self, factor=1.0):
+        factor = clamp_percent(factor)
+        self.replace(self.turn_action(factor * -TURN_SPEED, factor * TURN_SPEED))
+
+    def turn_right(self, factor=1.0):
+        factor = clamp_percent(factor)
+        self.replace(self.turn_action(factor * TURN_SPEED, factor * -TURN_SPEED))
+
+    def stop(self):
+        self.replace(self.stop_action())
+
+    def shutdown(self):
+        self.clear()
+        self.stop_action()()
 
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
