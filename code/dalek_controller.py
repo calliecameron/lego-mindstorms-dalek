@@ -19,9 +19,11 @@ while True:
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
             sock.sendall(text + "\n")
+            print sock.recv(1024)
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             sock.sendall(text + "\n")
+            print sock.recv(1024)
 
     screen.fill((255, 255, 255))
     disp = font.render(text, True, (0, 0, 0))
