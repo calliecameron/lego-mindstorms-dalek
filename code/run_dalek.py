@@ -57,5 +57,6 @@ try:
 
 finally:
     d.drive.shutdown()
+    print "exit"
     sys.exit(0)
-    
+    print "argh"

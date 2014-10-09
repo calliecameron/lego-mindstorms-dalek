@@ -105,8 +105,7 @@ class Drive(EventQueue):
         self.replace(self.drive_action(clamp_percent(factor) * DRIVE_SPEED))
 
     def reverse(self, factor=1.0):
-        self.replace(self.drive_action(clamp_percent(factor) * -DRIVE_SPEED),
-                     RunAfter(5, self.stop_action()))
+        self.replace(self.drive_action(clamp_percent(factor) * -DRIVE_SPEED))
 
     def turn_left(self, factor=1.0):
         factor = clamp_percent(factor)
@@ -129,13 +128,9 @@ class ControllerThread(threading.Thread):
         self.parent = parent
 
     def run(self):
-        i = 0
         while True:
             self.parent.drive.process()
             time.sleep(TICK_LENGTH_SECONDS)
-            if i == 0:
-                print "t"
-            i = (i + 1) % 10
 
 class Dalek(object):
     """Main Dalek controller"""
