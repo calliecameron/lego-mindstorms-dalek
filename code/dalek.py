@@ -142,7 +142,7 @@ class Drive(EventQueue):
         self.ticks_since_last += 1
 
     def post_process(self):
-        if self.ticks_since_last > 75:
+        if self.ticks_since_last > 100:
             self.shutdown()
 
     def forward(self, factor=1.0):

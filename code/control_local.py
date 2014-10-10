@@ -3,6 +3,7 @@
 itself (i.e. through an SSH session). Controls are different from (and
 less intuitive than) the pygame-based remote controller."""
 
+import argparse
 import sys
 import termios
 import tty
@@ -20,8 +21,11 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
 
-sound_dir = sys.argv[1]
-d = Dalek(sound_dir)
+parser = argparse.ArgumentParser(description="Control the Dalek directly from the terminal")
+parser.add_argument("soundDir", help="Directory containing sound files")
+
+args = parser.parse_args()
+d = Dalek(args.soundDir)
 
 print "Dalek controller: press 'p' to exit (note that Ctrl-C doesn't work!)"
 
