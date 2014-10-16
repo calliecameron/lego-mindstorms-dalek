@@ -3,6 +3,7 @@
 import threading
 import time
 from ev3.lego import LargeMotor, TouchSensor
+from dalek_common import *
 
 TICK_LENGTH_SECONDS = 0.1
 DRIVE_SPEED = -700
@@ -13,15 +14,6 @@ DRIVE_FORWARD = 1
 DRIVE_REVERSE = 2
 DRIVE_LEFT = 3
 DRIVE_RIGHT = 4
-
-def clamp_percent(factor):
-    factor = float(factor)
-    if factor < 0.0:
-        return 0.0
-    elif factor > 1.0:
-        return 1.0
-    else:
-        return factor
 
 class RunAfter(object):
     def __init__(self, seconds, action):

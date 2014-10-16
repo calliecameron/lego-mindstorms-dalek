@@ -3,40 +3,34 @@
 control_remote.py."""
 
 import sys
-from dalek import Dalek, DALEK_PORT
-from Mastermind import *
+from dalek import *
+from dalek_network import *
 
-class Server(MastermindServerTCP):
+class DalekReceiver(Receiver):
     def __init__(self, d):
-        super(Server, self).__init__()
+        super(DalekReceiver, self).__init__()
         self.d = d
-        self.connect("", DALEK_PORT)
-        self.accepting_allow_wait_forever()
 
-    def callback_client_handle(self, connection_object, data):
-        cmd = str(data).strip().split(":")
-        if cmd[0] == "forward":
-            if len(cmd) > 1:
-                factor = float(cmd[1])
-            else:
-                factor = 1.0
+    def begin_cmd(self, cmd, factor):
+        if cmd == FORWARD:
             self.d.drive.forward(factor)
-        elif cmd[0] == "reverse":
-            if len(cmd) > 1:
-                factor = float(cmd[1])
-            else:
-                factor = 1.0
+        elif cmd == REVERSE:
             self.d.drive.reverse(factor)
-        elif cmd[0] == "stop":
-            self.d.drive.stop()
 
-        return super(Server, self).callback_client_handle(connection_object, data)
+    def release_cmd(self, cmd):
+        if cmd == FORWARD:
+            self.d.drive.forward_stop()
+        elif cmd == REVERSE:
+            self.d.drive.reverse_stop()
+
+    def stop(self):
+        self.d.drive.stop()
 
 sound_dir = sys.argv[1]
 d = Dalek(sound_dir)
 
 try:
-    Server(d)
+    DalekReceiver(d)
 finally:
     print "foo"
     d.shutdown()

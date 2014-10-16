@@ -4,17 +4,22 @@ you run on the controlling machine; run remote_receiver.py on the
 Dalek itself."""
 
 
+import argparse
 import sys
 import pygame
 import time
-from Mastermind import *
+from dalek_network import *
+
+parser = argparse.ArgumentParser(description="Control the Dalek remotely from another machine")
+parser.add_argument("addr", help="Address of the Dalek")
+
+args = parser.parse_args()
 
 pygame.init()
 screen = pygame.display.set_mode((320, 240))
 font = pygame.font.Font(None, 40)
 text = ""
-sock = MastermindClientTCP()
-sock.connect(sys.argv[1], 12345)
+controller = Controller(args.addr)
 
 while True:
     for event in pygame.event.get():
@@ -23,15 +28,15 @@ while True:
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
-                sock.send("forward\n")
+                controller.begin_cmd(FORWARD)
             elif event.key == pygame.K_s:
-                sock.send("reverse\n")
+                controller.begin_cmd(REVERSE)
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
-                sock.send("stop\n")
+                controller.release_cmd(FORWARD)
             elif event.key == pygame.K_s:
-                sock.send("stop\n")
+                controller.release_cmd(REVERSE)
 
     screen.fill((255, 255, 255))
     disp = font.render(text, True, (0, 0, 0))
