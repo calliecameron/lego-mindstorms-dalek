@@ -17,7 +17,7 @@ STOP = "stop"
 class Controller(object):
     def __init__(self, addr):
         super(Controller, self).__init__()
-        self.sock = MastermindClientTCP()
+        self.sock = MastermindClientUDP()
         self.sock.connect(addr, DALEK_PORT)
 
     def send(self, msg):
@@ -33,7 +33,7 @@ class Controller(object):
         self.send(STOP)
 
 
-class Receiver(MastermindServerTCP):
+class Receiver(MastermindServerUDP):
     def __init__(self):
         super(Receiver, self).__init__()
 
