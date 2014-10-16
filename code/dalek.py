@@ -125,7 +125,7 @@ class Drive(EventQueue):
     def conditional_stop_action(self, state):
         def action():
             if self.drive_state == state:
-                self.replace(self.stop_action())
+                self.ticks_since_last = 101
         return action
 
     def pre_process(self):
