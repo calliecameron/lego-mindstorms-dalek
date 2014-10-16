@@ -43,6 +43,7 @@ class Receiver(MastermindServerTCP):
 
     def callback_client_handle(self, connection_object, data):
         msg = str(data).strip().split(":")
+        print "Network received: '%s'" % str(msg)
         if len(msg) >= 1:
             if msg[0] == BEGIN:
                 if len(msg) >= 3:

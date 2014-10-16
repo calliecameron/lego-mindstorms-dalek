@@ -22,6 +22,7 @@ class DalekReceiver(Receiver):
         if cmd == FORWARD:
             self.d.drive.forward_stop()
         elif cmd == REVERSE:
+            print "blargh"
             self.d.drive.reverse_stop()
 
     def stop(self):
