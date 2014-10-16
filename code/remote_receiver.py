@@ -10,6 +10,7 @@ class DalekReceiver(Receiver):
     def __init__(self, d):
         super(DalekReceiver, self).__init__()
         self.d = d
+        self.start()
 
     def begin_cmd(self, cmd, factor):
         if cmd == FORWARD:
@@ -32,7 +33,5 @@ d = Dalek(sound_dir)
 try:
     DalekReceiver(d)
 finally:
-    print "foo"
     d.shutdown()
     sys.exit(0)
-    print "bar"

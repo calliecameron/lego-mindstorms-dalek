@@ -36,6 +36,8 @@ class Controller(object):
 class Receiver(MastermindServerTCP):
     def __init__(self):
         super(Receiver, self).__init__()
+
+    def start(self):
         self.connect("", DALEK_PORT)
         self.accepting_allow_wait_forever()
 
