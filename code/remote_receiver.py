@@ -14,23 +14,23 @@ class DalekReceiver(Receiver):
 
     def begin_cmd(self, cmd, factor):
         if cmd == FORWARD:
-            print "baz1"
             self.d.drive.forward(factor)
-            print "baz2"
         elif cmd == REVERSE:
-            print "bar1"
             self.d.drive.reverse(factor)
-            print "bar2"
+        elif cmd == TURN_LEFT:
+            self.d.drive.turn_left(factor)
+        elif cmd == TURN_RIGHT:
+            self.d.drive.turn_right(factor)
 
     def release_cmd(self, cmd):
         if cmd == FORWARD:
-            print "foo1"
             self.d.drive.forward_stop()
-            print "foo2"
         elif cmd == REVERSE:
-            print "blargh1"
             self.d.drive.reverse_stop()
-            print "blargh2"
+        elif cmd == TURN_LEFT:
+            self.d.drive.left_stop()
+        elif cmd == TURN_RIGHT:
+            self.d.drive.right_stop()
 
     def stop(self):
         self.d.drive.stop()

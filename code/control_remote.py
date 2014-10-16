@@ -31,12 +31,21 @@ while True:
                 controller.begin_cmd(FORWARD)
             elif event.key == pygame.K_s:
                 controller.begin_cmd(REVERSE)
+            elif event.key == pygame.K_a:
+                controller.begin_cmd(TURN_LEFT)
+            elif event.key == pygame.K_d:
+                controller.begin_cmd(TURN_RIGHT)
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
                 controller.release_cmd(FORWARD)
             elif event.key == pygame.K_s:
                 controller.release_cmd(REVERSE)
+            elif event.key == pygame.K_a:
+                controller.release_cmd(TURN_LEFT)
+            elif event.key == pygame.K_d:
+                controller.release_cmd(TURN_RIGHT)
+
 
     screen.fill((255, 255, 255))
     disp = font.render(text, True, (0, 0, 0))
