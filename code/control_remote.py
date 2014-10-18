@@ -21,6 +21,16 @@ font = pygame.font.Font(None, 40)
 text = ""
 controller = Controller(args.addr)
 
+repeat_command = None
+next_repeat = 0
+
+def begin_cmd(cmd, factor = 1.0):
+    global repeat_command
+    controller.begin_cmd(cmd, factor)
+    def action():
+        controller.begin_cmd(cmd, factor)
+    repeat_command = action
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -28,23 +38,27 @@ while True:
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
-                controller.begin_cmd(FORWARD)
+                begin_cmd(FORWARD)
             elif event.key == pygame.K_s:
-                controller.begin_cmd(REVERSE)
+                begin_cmd(REVERSE)
             elif event.key == pygame.K_a:
-                controller.begin_cmd(TURN_LEFT)
+                begin_cmd(TURN_LEFT)
             elif event.key == pygame.K_d:
-                controller.begin_cmd(TURN_RIGHT)
+                begin_cmd(TURN_RIGHT)
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
                 controller.release_cmd(FORWARD)
+                repeat_command = None
             elif event.key == pygame.K_s:
                 controller.release_cmd(REVERSE)
+                repeat_command = None
             elif event.key == pygame.K_a:
                 controller.release_cmd(TURN_LEFT)
+                repeat_command = None
             elif event.key == pygame.K_d:
                 controller.release_cmd(TURN_RIGHT)
+                repeat_command = None
 
 
     screen.fill((255, 255, 255))
@@ -55,3 +69,9 @@ while True:
     screen.blit(disp, rect)
     pygame.display.flip()
     time.sleep(1/60.0)
+    next_repeat += 1
+
+    if next_repeat >= 5 * 60:
+        next_repeat = 0
+        if repeat_command:
+            repeat_command()

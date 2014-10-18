@@ -21,6 +21,7 @@ class Controller(object):
         self.sock.connect(addr, DALEK_PORT)
 
     def send(self, msg):
+        print "Network sending: '%s'" % msg
         self.sock.send(msg + "\n")
 
     def begin_cmd(self, cmd, factor=1.0):
