@@ -2,22 +2,30 @@
 
 import threading
 import time
-from ev3.lego import LargeMotor, TouchSensor
+import subprocess
+import os.path
+from ev3.lego import LargeMotor, MediumMotor, TouchSensor
 from dalek_common import *
 
 TICK_LENGTH_SECONDS = 0.1
+
 DRIVE_SPEED = -700
 TURN_SPEED = -500
-
 DRIVE_STOP = 0
 DRIVE_FORWARD = 1
 DRIVE_REVERSE = 2
 DRIVE_LEFT = 3
 DRIVE_RIGHT = 4
 
-class RunAfter(object):
+HEAD_LIMIT = 135
+HEAD_STOP = 0
+HEAD_LEFT = 1
+HEAD_RIGHT = 2
+
+
+class RunAfterTime(object):
     def __init__(self, seconds, action):
-        super(RunAfter, self).__init__()
+        super(RunAfterTime, self).__init__()
         self.ticks = int(seconds / TICK_LENGTH_SECONDS)
         self.action = action
 
@@ -29,12 +37,25 @@ class RunAfter(object):
             self.ticks -= 1
             return True
 
+class RunAfterCondition(object):
+    def __init__(self, cond, action):
+        super(RunAfterCondition, self).__init__()
+        self.cond = cond
+        self.action = action
+
+    def __call__(self):
+        if self.cond():
+            self.action()
+            return False
+        else:
+            return True
+
 
 class EventQueue(object):
     def __init__(self):
         super(EventQueue, self).__init__()
         self.queue = []
-        self.lock = threading.RLock()
+        self.lock = threading.Condition(threading.RLock())
 
     def add(self, *events):
         self.lock.acquire()
@@ -45,6 +66,7 @@ class EventQueue(object):
     def clear(self):
         self.lock.acquire()
         self.queue = []
+        self.lock.notifyAll()
         self.lock.release()
 
     def replace(self, *events):
@@ -52,6 +74,12 @@ class EventQueue(object):
         self.queue = []
         for e in events:
             self.queue.append(e)
+        self.lock.release()
+
+    def wait_until_empty(self):
+        self.lock.acquire()
+        while self.queue:
+            self.lock.wait()
         self.lock.release()
 
     def process(self):
@@ -65,6 +93,8 @@ class EventQueue(object):
             else:
                 del self.queue[i]
         self.post_process()
+        if not self.queue:
+            self.lock.notifyAll()
         self.lock.release()
 
     def pre_process(self):
@@ -172,6 +202,112 @@ class Drive(EventQueue):
         self.stop_action()()
 
 
+class Head(EventQueue):
+    def __init__(self, parent):
+        super(Head, self).__init__()
+
+        self.parent = parent
+        self.motor = MediumMotor("B")
+        self.head_state = HEAD_STOP
+        self.head_factor = 1.0
+        self.camera_process = None
+
+    def calibrate(self):
+        def wait_for_stop():
+            time.sleep(1)
+            while self.motor.pulses_per_second != 0:
+                time.sleep(0.1)
+
+        self.parent.voice.exterminate()
+        self.parent.voice.wait()
+
+        self.motor.reset()
+        self.motor.regulation_mode = "off"
+        self.motor.stop_mode = "coast"
+
+        self.motor.duty_cycle_sp = 65
+        self.motor.start()
+        wait_for_stop()
+        self.motor.stop()
+        pos1 = self.motor.position
+
+        self.motor.duty_cycle_sp = -65
+        self.motor.start()
+        wait_for_stop()
+        self.motor.stop()
+        pos2 = self.motor.position
+
+        midpoint = (pos1 + pos2) / 2.0
+
+        self.motor.regulation_mode = "on"
+        self.motor.stop_mode = "hold"
+        self.motor.ramp_up_sp = 500
+        self.motor.ramp_down_sp = 200
+        self.motor.run_position_limited(midpoint, 400)
+        wait_for_stop()
+        self.motor.stop()
+        self.motor.position = 0
+        self.motor.stop_mode = "brake"
+
+        self.parent.voice.exterminate()
+        self.parent.voice.wait()
+
+
+    def stop_action(self):
+        def action():
+            self.head_state = HEAD_STOP
+            self.head_factor = 0.0
+            self.motor.stop()
+        return action
+
+    def stopped_cond(self):
+        def cond():
+            return self.motor.pulses_per_second == 0
+        return cond
+
+    def pre_process(self):
+        if ((self.head_state == HEAD_LEFT and self.motor.position < -HEAD_LIMIT)
+            or (self.head_state == HEAD_RIGHT and self.motor.position > HEAD_LIMIT)):
+            self.shutdown()
+
+    def stop(self):
+        self.replace(self.stop_action())
+
+    def shutdown(self):
+        self.clear()
+        self.stop_action()()
+
+
+class Voice(object):
+    def __init__(self, sound_dir):
+        super(Voice, self).__init__()
+        self.sound_dir = sound_dir
+        self.proc = None
+
+    def stop(self):
+        if self.proc:
+            self.proc.kill()
+            self.proc.wait()
+            self.proc = None
+
+    def wait(self):
+        if self.proc:
+            self.proc.wait()
+            self.proc = None
+
+    def speak(self, sound):
+        self.stop()
+        path = os.path.join(self.sound_dir, sound + ".wav")
+        if os.path.exists(path):
+            with open("/dev/null", "w") as devnull:
+                self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
+
+    def exterminate(self):
+        self.speak("exterminate")
+
+    def fire_gun(self):
+        self.speak("gun")
+
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
         super(ControllerThread, self).__init__()
@@ -188,10 +324,13 @@ class Dalek(object):
 
     def __init__(self, sound_dir):
         super(Dalek, self).__init__()
-        self.sound_dir = sound_dir
         self.drive = Drive()
+        self.head = Head(self)
+        self.voice = Voice(sound_dir)
+        self.head.calibrate()
         self.thread = ControllerThread(self)
         self.thread.start()
 
     def shutdown(self):
         self.drive.shutdown()
+        self.head.shutdown()
