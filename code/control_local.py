@@ -34,21 +34,21 @@ try:
         cmd = getch()
 
         if cmd == "w":
-            d.drive.forward()
+            d.drive.drive(1.0)
         elif cmd == "W":
-            d.drive.forward(0.5)
+            d.drive.drive(0.5)
         elif cmd == "x":
-            d.drive.reverse()
+            d.drive.drive(-1.0)
         elif cmd == "X":
-            d.drive.reverse(0.5)
+            d.drive.drive(-0.5)
         elif cmd == "a":
-            d.drive.turn_left()
+            d.drive.turn(1.0)
         elif cmd == "A":
-            d.drive.turn_left(0.5)
+            d.drive.turn(0.5)
         elif cmd == "d":
-            d.drive.turn_right()
+            d.drive.turn(-1.0)
         elif cmd == "D":
-            d.drive.turn_right(0.5)
+            d.drive.turn(-0.5)
         elif cmd == "s" or cmd == "S":
             d.drive.stop()
         # elif cmd == "q":

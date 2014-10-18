@@ -5,22 +5,31 @@ import time
 import subprocess
 import os.path
 from ev3.lego import LargeMotor, MediumMotor, TouchSensor
-from dalek_common import *
+from dalek_common import clamp_control_range, sign
 
 TICK_LENGTH_SECONDS = 0.1
 
-DRIVE_SPEED = -700
-TURN_SPEED = -500
-DRIVE_STOP = 0
-DRIVE_FORWARD = 1
-DRIVE_REVERSE = 2
-DRIVE_LEFT = 3
-DRIVE_RIGHT = 4
 
 HEAD_LIMIT = 135
 HEAD_STOP = 0
 HEAD_LEFT = 1
 HEAD_RIGHT = 2
+
+class TwoWayControl(object):
+
+    def __init__(self):
+        super(TwoWayControl, self).__init__()
+        self.value = 0.0
+
+    def off(self):
+        self.value = 0.0
+
+    def press(self, value):
+        self.value = clamp_control_range(value)
+
+    def release(self, direction):
+        if sign(self.value) == sign(direction):
+            self.off()
 
 
 class RunAfterTime(object):
@@ -105,6 +114,10 @@ class EventQueue(object):
 
 
 class Drive(EventQueue):
+
+    DRIVE_SPEED = -700
+    TURN_SPEED = -500
+
     def __init__(self):
         super(Drive, self).__init__()
 
@@ -118,45 +131,44 @@ class Drive(EventQueue):
         self.left_wheel = init_wheel("D")
         self.right_wheel = init_wheel("A")
         self.touch_sensor = TouchSensor(2)
-        self.drive_state = DRIVE_STOP
-        self.drive_factor = 0.0
+        self.drive_control = TwoWayControl()
+        self.turn_control = TwoWayControl()
         self.ticks_since_last = 0
 
-    def drive_action(self, speed, state, factor):
+    def update_wheel_speeds(self):
+        def set_wheel_speed(wheel, speed):
+            wheel.pulses_per_second_sp = speed
+            if speed == 0:
+                wheel.stop()
+            else:
+                wheel.start()
+
+        drive_part = Drive.DRIVE_SPEED * self.drive_control.value
+        turn_part = Drive.TURN_SPEED * self.turn_control.value
+
+        set_wheel_speed(self.left_wheel, drive_part + turn_part)
+        set_wheel_speed(self.right_wheel, drive_part - turn_part)
+
+    def control_press_action(self, control, value):
         def action():
-            self.drive_state = state
-            self.drive_factor = factor
-            self.left_wheel.pulses_per_second_sp = speed
-            self.right_wheel.pulses_per_second_sp = speed
-            self.left_wheel.start()
-            self.right_wheel.start()
+            control.press(value)
+            self.update_wheel_speeds()
             self.ticks_since_last = 0
         return action
 
-    def turn_action(self, left_speed, right_speed, state, factor):
+    def control_release_action(self, control, value):
         def action():
-            self.drive_state = state
-            self.drive_factor = factor
-            self.left_wheel.pulses_per_second_sp = left_speed
-            self.right_wheel.pulses_per_second_sp = right_speed
-            self.left_wheel.start()
-            self.right_wheel.start()
+            control.release(value)
+            self.update_wheel_speeds()
             self.ticks_since_last = 0
         return action
 
     def stop_action(self):
         def action():
-            self.drive_state = DRIVE_STOP
-            self.drive_factor = 0.0
-            self.left_wheel.stop()
-            self.right_wheel.stop()
+            self.drive_control.off()
+            self.turn_control.off()
+            self.update_wheel_speeds()
             self.ticks_since_last = 0
-        return action
-
-    def conditional_stop_action(self, state):
-        def action():
-            if self.drive_state == state:
-                self.ticks_since_last = 101
         return action
 
     def pre_process(self):
@@ -168,34 +180,20 @@ class Drive(EventQueue):
         if self.ticks_since_last > 100:
             self.shutdown()
 
-    def forward(self, factor=1.0):
-        self.replace(self.drive_action(clamp_percent(factor) * DRIVE_SPEED, DRIVE_FORWARD, clamp_percent(factor)))
+    def drive(self, value):
+        self.replace(self.control_press_action(self.drive_control, value))
 
-    def reverse(self, factor=1.0):
-        self.replace(self.drive_action(clamp_percent(factor) * -DRIVE_SPEED, DRIVE_REVERSE, clamp_percent(factor)))
+    def drive_release(self, value):
+        self.replace(self.control_release_action(self.drive_control, value))
 
-    def turn_left(self, factor=1.0):
-        factor = clamp_percent(factor)
-        self.replace(self.turn_action(factor * -TURN_SPEED, factor * TURN_SPEED, DRIVE_LEFT, factor))
+    def turn(self, value):
+        self.replace(self.control_press_action(self.turn_control, value))
 
-    def turn_right(self, factor=1.0):
-        factor = clamp_percent(factor)
-        self.replace(self.turn_action(factor * TURN_SPEED, factor * -TURN_SPEED, DRIVE_RIGHT, factor))
+    def turn_release(self, value):
+        self.replace(self.control_release_action(self.turn_control, value))
 
     def stop(self):
         self.replace(self.stop_action())
-
-    def forward_stop(self):
-        self.add(self.conditional_stop_action(DRIVE_FORWARD))
-
-    def reverse_stop(self):
-        self.add(self.conditional_stop_action(DRIVE_REVERSE))
-
-    def left_stop(self):
-        self.add(self.conditional_stop_action(DRIVE_LEFT))
-
-    def right_stop(self):
-        self.add(self.conditional_stop_action(DRIVE_RIGHT))
 
     def shutdown(self):
         self.clear()
@@ -325,12 +323,12 @@ class Dalek(object):
     def __init__(self, sound_dir):
         super(Dalek, self).__init__()
         self.drive = Drive()
-        self.head = Head(self)
-        self.voice = Voice(sound_dir)
-        self.head.calibrate()
+        # self.head = Head(self)
+        # self.voice = Voice(sound_dir)
+        # self.head.calibrate()
         self.thread = ControllerThread(self)
         self.thread.start()
 
     def shutdown(self):
         self.drive.shutdown()
-        self.head.shutdown()
+        # self.head.shutdown()

@@ -1,16 +1,11 @@
-from Mastermind import *
-from dalek_common import *
+from Mastermind import MastermindClientTCP, MastermindServerTCP
 
 DALEK_PORT = 12345
 
 BEGIN = "begin"
 RELEASE = "release"
-
-FORWARD = "forward"
-REVERSE = "reverse"
-TURN_LEFT = "left"
-TURN_RIGHT = "right"
-
+DRIVE = "drive"
+TURN = "turn"
 STOP = "stop"
 
 
@@ -24,11 +19,11 @@ class Controller(object):
         print "Network sending: '%s'" % msg
         self.sock.send(msg + "\n")
 
-    def begin_cmd(self, cmd, factor=1.0):
-        self.send("%s:%s:%f" % (BEGIN, cmd, clamp_percent(factor)))
+    def begin_cmd(self, cmd, value):
+        self.send("%s:%s:%f" % (BEGIN, cmd, value))
 
-    def release_cmd(self, cmd):
-        self.send("%s:%s" % (RELEASE, cmd))
+    def release_cmd(self, cmd, value):
+        self.send("%s:%s:%f" % (RELEASE, cmd, value))
 
     def stop(self):
         self.send(STOP)
@@ -48,12 +43,12 @@ class Receiver(MastermindServerTCP):
         if len(msg) >= 1:
             if msg[0] == BEGIN:
                 if len(msg) >= 3:
-                    self.begin_cmd(msg[1], clamp_percent(msg[2]))
+                    self.begin_cmd(msg[1], msg[2])
                 else:
                     self.print_error(data)
             elif msg[0] == RELEASE:
-                if len(msg) >= 2:
-                    self.release_cmd(msg[1])
+                if len(msg) >= 3:
+                    self.release_cmd(msg[1], msg[2])
                 else:
                     self.print_error(data)
             elif msg[0] == STOP:
@@ -68,10 +63,10 @@ class Receiver(MastermindServerTCP):
     def print_error(self, data):
         print "Network received bad message: '%s'" % str(data)
 
-    def begin_cmd(self, cmd, factor):
+    def begin_cmd(self, cmd, value):
         raise NotImplementedError
 
-    def release_cmd(self, cmd):
+    def release_cmd(self, cmd, value):
         raise NotImplementedError
 
     def stop(self):

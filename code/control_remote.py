@@ -8,7 +8,7 @@ import argparse
 import sys
 import pygame
 import time
-from dalek_network import *
+from dalek_network import Controller, DRIVE, TURN
 
 parser = argparse.ArgumentParser(description="Control the Dalek remotely from another machine")
 parser.add_argument("addr", help="Address of the Dalek")
@@ -24,11 +24,11 @@ controller = Controller(args.addr)
 repeat_command = None
 next_repeat = 0
 
-def begin_cmd(cmd, factor = 1.0):
+def begin_cmd(cmd, value):
     global repeat_command
-    controller.begin_cmd(cmd, factor)
+    controller.begin_cmd(cmd, value)
     def action():
-        controller.begin_cmd(cmd, factor)
+        controller.begin_cmd(cmd, value)
     repeat_command = action
 
 while True:
@@ -38,26 +38,26 @@ while True:
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
-                begin_cmd(FORWARD)
+                begin_cmd(DRIVE, 1.0)
             elif event.key == pygame.K_s:
-                begin_cmd(REVERSE)
+                begin_cmd(DRIVE, -1.0)
             elif event.key == pygame.K_a:
-                begin_cmd(TURN_LEFT)
+                begin_cmd(TURN, 1.0)
             elif event.key == pygame.K_d:
-                begin_cmd(TURN_RIGHT)
+                begin_cmd(TURN, -1.0)
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
-                controller.release_cmd(FORWARD)
+                controller.release_cmd(DRIVE, 1.0)
                 repeat_command = None
             elif event.key == pygame.K_s:
-                controller.release_cmd(REVERSE)
+                controller.release_cmd(DRIVE, -1.0)
                 repeat_command = None
             elif event.key == pygame.K_a:
-                controller.release_cmd(TURN_LEFT)
+                controller.release_cmd(TURN, 1.0)
                 repeat_command = None
             elif event.key == pygame.K_d:
-                controller.release_cmd(TURN_RIGHT)
+                controller.release_cmd(TURN, -1.0)
                 repeat_command = None
 
 
