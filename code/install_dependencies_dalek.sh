@@ -1,6 +1,9 @@
 #!/bin/bash
+# Install dependencies on the Dalek itself
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+sudo apt-get install python-setuptools
 
 easy_install --user python-ev3
 
