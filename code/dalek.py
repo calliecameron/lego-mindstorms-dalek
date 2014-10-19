@@ -181,19 +181,19 @@ class Drive(EventQueue):
             self.shutdown()
 
     def drive(self, value):
-        self.replace(self.control_press_action(self.drive_control, value))
+        self.add(self.control_press_action(self.drive_control, value))
 
     def drive_release(self, value):
-        self.replace(self.control_release_action(self.drive_control, value))
+        self.add(self.control_release_action(self.drive_control, value))
 
     def turn(self, value):
-        self.replace(self.control_press_action(self.turn_control, value))
+        self.add(self.control_press_action(self.turn_control, value))
 
     def turn_release(self, value):
-        self.replace(self.control_release_action(self.turn_control, value))
+        self.add(self.control_release_action(self.turn_control, value))
 
     def stop(self):
-        self.replace(self.stop_action())
+        self.add(self.stop_action())
 
     def shutdown(self):
         self.clear()
