@@ -1,4 +1,5 @@
-from Mastermind import MastermindClientTCP, MastermindServerTCP
+# from Mastermind import MastermindClientTCP, MastermindServerTCP
+import socket
 
 DALEK_PORT = 12345
 
@@ -16,8 +17,11 @@ STOP_SOUND = "stopsound"
 class Controller(object):
     def __init__(self, addr):
         super(Controller, self).__init__()
-        self.sock = MastermindClientTCP()
-        self.sock.connect(addr, DALEK_PORT)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.sock.connect((addr, DALEK_PORT))
+        # self.sock = MastermindClientTCP()
+        # self.sock.connect(addr, DALEK_PORT)
 
     def send(self, msg):
         print "Network sending: '%s'" % msg
@@ -39,13 +43,25 @@ class Controller(object):
         self.send(STOP_SOUND)
 
 
-class Receiver(MastermindServerTCP):
+# class Receiver(MastermindServerTCP):
+class Receiver(object):
     def __init__(self):
         super(Receiver, self).__init__()
+        self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = None
 
     def start(self):
-        self.connect("", DALEK_PORT)
-        self.accepting_allow_wait_forever()
+        self.listen_sock.bind(("", DALEK_PORT))
+        self.listen_sock.listen(1)
+        (self.sock, _) = self.listen_sock.accept()
+        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+        while True:
+            data = self.sock.recv(4096)
+            self.callback_client_handle(None, data)
+
+        # self.connect("", DALEK_PORT)
+        # self.accepting_allow_wait_forever()
 
     def callback_client_handle(self, connection_object, data):
         msg = str(data).strip().split(":")
@@ -75,7 +91,7 @@ class Receiver(MastermindServerTCP):
         else:
             self.print_error(data)
 
-        return super(Receiver, self).callback_client_handle(connection_object, data)
+        # return super(Receiver, self).callback_client_handle(connection_object, data)
 
     def print_error(self, data):
         print "Network received bad message: '%s'" % str(data)
