@@ -9,6 +9,7 @@ def clamp_control_range(value):
         return value
 
 def sign(x):
+    x = float(x)
     if x > 0.0:
         return 1
     elif x < 0.0:
