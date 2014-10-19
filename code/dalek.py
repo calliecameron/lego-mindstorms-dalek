@@ -210,7 +210,7 @@ class Head(EventQueue):
 
     def calibrate(self):
         def wait_for_stop():
-            time.sleep(1)
+            time.sleep(2)
             while self.motor.pulses_per_second != 0:
                 time.sleep(0.1)
 
@@ -221,19 +221,22 @@ class Head(EventQueue):
         self.motor.regulation_mode = "on"
         self.motor.stop_mode = "coast"
 
-        self.motor.pulses_per_second_sp = 100
+        self.motor.pulses_per_second_sp = 400
         self.motor.start()
         wait_for_stop()
         self.motor.stop()
         pos1 = self.motor.position
+        print pos1
 
-        self.motor.pulses_per_second_sp = -100
+        self.motor.pulses_per_second_sp = -400
         self.motor.start()
         wait_for_stop()
         self.motor.stop()
         pos2 = self.motor.position
+        print pos2
 
         midpoint = (pos1 + pos2) / 2.0
+        print midpoint
 
         self.motor.regulation_mode = "on"
         self.motor.stop_mode = "hold"
@@ -242,7 +245,9 @@ class Head(EventQueue):
         self.motor.run_position_limited(midpoint, 400)
         wait_for_stop()
         self.motor.stop()
+        print self.motor.position
         self.motor.position = 0
+        print self.motor.position
         self.motor.stop_mode = "brake"
 
         self.parent.voice.exterminate()
