@@ -255,6 +255,8 @@ class Head(EventQueue):
         self.motor.position = 0
         print self.motor.position
         self.motor.stop_mode = "brake"
+        self.motor.ramp_up_sp = 0
+        self.motor.ramp_down_sp = 0
 
         self.parent.voice.exterminate()
         self.parent.voice.wait()
@@ -264,8 +266,10 @@ class Head(EventQueue):
         self.motor.pulses_per_second_sp = speed
         if speed == 0:
             self.motor.stop()
+            print "stopping head motor"
         else:
             self.motor.start()
+            print "starting head motor"
 
     def stop_action(self):
         def action():
@@ -290,10 +294,10 @@ class Head(EventQueue):
     #         return self.motor.pulses_per_second == 0
     #     return cond
 
-    def pre_process(self):
-        if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
-            or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
-            self.shutdown()
+    # def pre_process(self):
+    #     if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
+    #         or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
+    #         self.shutdown()
 
     def stop(self):
         self.replace(self.stop_action())
@@ -354,7 +358,7 @@ class Camera(EventQueue):
     def __init__(self):
         super(Camera, self).__init__()
         self.snapshot_handler = None
-        self.output_file = tempfile.mktemp()
+        self.output_file = tempfile.mktemp(suffix=".jpeg")
         self.proc = None
 
     def register_handler(self, h):
