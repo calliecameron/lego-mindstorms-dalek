@@ -5,10 +5,11 @@ Dalek itself."""
 
 
 import argparse
-import sys
-import pygame
-import time
 from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
+import PIL.Image
+import pygame
+import sys
+import time
 
 parser = argparse.ArgumentParser(description="Control the Dalek remotely from another machine")
 parser.add_argument("addr", help="Address of the Dalek")
@@ -26,8 +27,7 @@ class RemoteController(Controller):
         super(RemoteController, self).__init__(addr)
 
     def snapshot_received(self, data):
-        with open(args.snapshotFile, "w") as f:
-            f.write(data)
+        PIL.Image.fromarray(data).rotate(270).save(args.snapshotFile, "JPEG")
 
 controller = RemoteController(args.addr)
 
