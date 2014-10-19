@@ -3,7 +3,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-sudo apt-get install python-setuptools make gcc libjpeg-dev unzip
+sudo apt-get install python-setuptools make gcc libjpeg-dev unzip python-smbus
 
 easy_install --user python-ev3
 

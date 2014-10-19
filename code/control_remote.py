@@ -42,12 +42,12 @@ while True:
             elif event.key == pygame.K_s:
                 begin_cmd(DRIVE, -1.0)
             elif event.key == pygame.K_a:
-                begin_cmd(TURN, 1.0)
-            elif event.key == pygame.K_d:
                 begin_cmd(TURN, -1.0)
-            elif event.ket == pygame.K_1:
+            elif event.key == pygame.K_d:
+                begin_cmd(TURN, 1.0)
+            elif event.key == pygame.K_1:
                 controller.play_sound("exterminate")
-            elif event.ket == pygame.K_2:
+            elif event.key == pygame.K_2:
                 controller.play_sound("gun")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
@@ -58,10 +58,10 @@ while True:
                 controller.release_cmd(DRIVE, -1.0)
                 repeat_command = None
             elif event.key == pygame.K_a:
-                controller.release_cmd(TURN, 1.0)
+                controller.release_cmd(TURN, -1.0)
                 repeat_command = None
             elif event.key == pygame.K_d:
-                controller.release_cmd(TURN, -1.0)
+                controller.release_cmd(TURN, 1.0)
                 repeat_command = None
 
 
