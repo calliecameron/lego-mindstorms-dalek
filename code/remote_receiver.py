@@ -5,7 +5,7 @@ control_remote.py."""
 import argparse
 import sys
 from dalek import Dalek
-from dalek_network import Receiver, DRIVE, TURN
+from dalek_network import Receiver, DRIVE, TURN, HEAD_TURN
 
 parser = argparse.ArgumentParser(description="Run this on the Dalek so it can be controlled remotely.")
 parser.add_argument("soundDir", help="Directory containing sound files")
@@ -24,12 +24,16 @@ class DalekReceiver(Receiver):
             self.d.drive.drive(value)
         elif cmd == TURN:
             self.d.drive.turn(value)
+        elif cmd == HEAD_TURN:
+            self.d.head.turn(value)
 
     def release_cmd(self, cmd, value):
         if cmd == DRIVE:
             self.d.drive.drive_release(value)
         elif cmd == TURN:
             self.d.drive.turn_release(value)
+        elif cmd == HEAD_TURN:
+            self.d.head.turn_release(value)
 
     def stop(self):
         self.d.drive.stop()

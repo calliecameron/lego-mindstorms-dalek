@@ -8,7 +8,7 @@ import argparse
 import sys
 import pygame
 import time
-from dalek_network import Controller, DRIVE, TURN
+from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
 
 parser = argparse.ArgumentParser(description="Control the Dalek remotely from another machine")
 parser.add_argument("addr", help="Address of the Dalek")
@@ -49,6 +49,10 @@ while True:
                 begin_cmd(TURN, -1.0)
             elif event.key == pygame.K_d:
                 begin_cmd(TURN, 1.0)
+            elif event.key == pygame.K_q:
+                controller.begin_cmd(HEAD_TURN, -1.0)
+            elif event.key == pygame.K_e:
+                controller.begin_cmd(HEAD_TURN, 1.0)
             elif event.key == pygame.K_1:
                 controller.play_sound("exterminate")
             elif event.key == pygame.K_2:
@@ -66,6 +70,8 @@ while True:
             elif event.key == pygame.K_8:
                 controller.play_sound("you-would-make-a-good-dalek")
             elif event.key == pygame.K_9:
+                controller.play_sound("doctor")
+            elif event.key == pygame.K_0:
                 controller.play_sound("the-doctor")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
@@ -81,6 +87,10 @@ while True:
             elif event.key == pygame.K_d:
                 controller.release_cmd(TURN, 1.0)
                 repeat_command = None
+            elif event.key == pygame.K_q:
+                controller.release_cmd(HEAD_TURN, -1.0)
+            elif event.key == pygame.K_e:
+                controller.release_cmd(HEAD_TURN, 1.0)
 
 
     screen.fill((255, 255, 255))

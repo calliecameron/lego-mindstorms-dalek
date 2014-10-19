@@ -9,12 +9,6 @@ from dalek_common import clamp_control_range, sign
 
 TICK_LENGTH_SECONDS = 0.1
 
-
-HEAD_LIMIT = 135
-HEAD_STOP = 0
-HEAD_LEFT = 1
-HEAD_RIGHT = 2
-
 class TwoWayControl(object):
 
     def __init__(self):
@@ -201,6 +195,10 @@ class Drive(EventQueue):
 
 
 class Head(EventQueue):
+
+    HEAD_LIMIT = 135
+    HEAD_SPEED = 200
+
     def __init__(self, parent):
         super(Head, self).__init__()
 
@@ -253,10 +251,30 @@ class Head(EventQueue):
         self.parent.voice.exterminate()
         self.parent.voice.wait()
 
+    def update_motor_speed(self):
+        speed = self.control.value * Head.HEAD_SPEED
+        self.motor.pulses_per_second_sp = speed
+        if speed == 0:
+            self.motor.stop()
+        else:
+            self.motor.start()
 
     def stop_action(self):
         def action():
-            self.motor.stop()
+            self.control.off()
+            self.update_motor_speed()
+        return action
+
+    def control_press_action(self, value):
+        def action():
+            self.control.press(value)
+            self.update_motor_speed()
+        return action
+
+    def control_release_action(self, value):
+        def action():
+            self.control.release(value)
+            self.update_motor_speed()
         return action
 
     # def stopped_cond(self):
@@ -264,13 +282,19 @@ class Head(EventQueue):
     #         return self.motor.pulses_per_second == 0
     #     return cond
 
-    # def pre_process(self):
-    #     if ((self.head_state == HEAD_LEFT and self.motor.position < -HEAD_LIMIT)
-    #         or (self.head_state == HEAD_RIGHT and self.motor.position > HEAD_LIMIT)):
-    #         self.shutdown()
+    def pre_process(self):
+        if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
+            or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
+            self.shutdown()
 
     def stop(self):
         self.replace(self.stop_action())
+
+    def turn(self, value):
+        self.add(self.control_press_action(value))
+
+    def turn_release(self, value):
+        self.add(self.control_release_action(value))
 
     def shutdown(self):
         self.clear()
@@ -332,7 +356,7 @@ class Dalek(object):
 
     def shutdown(self):
         self.drive.shutdown()
-        # self.head.shutdown()
+        self.head.shutdown()
         self.voice.stop()
         self.voice.speak("status-hibernation")
         self.voice.wait()

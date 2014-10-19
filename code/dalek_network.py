@@ -11,6 +11,8 @@ DRIVE = "drive"
 TURN = "turn"
 STOP = "stop"
 
+HEAD_TURN = "headturn"
+
 PLAY_SOUND = "playsound"
 STOP_SOUND = "stopsound"
 
