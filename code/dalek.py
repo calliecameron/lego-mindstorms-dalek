@@ -1,11 +1,12 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
-import threading
-import time
-import subprocess
-import os.path
-from ev3.lego import LargeMotor, MediumMotor, TouchSensor
 from dalek_common import clamp_control_range, sign
+from ev3.lego import LargeMotor, MediumMotor, TouchSensor
+import os.path
+import subprocess
+import tempfile
+import time
+import threading
 
 TICK_LENGTH_SECONDS = 0.1
 
@@ -64,6 +65,13 @@ class EventQueue(object):
         self.lock.acquire()
         for e in events:
             self.queue.append(e)
+        self.lock.release()
+
+    def add_if_empty(self, *events):
+        self.lock.acquire()
+        if not self.queue:
+            for e in events:
+                self.queue.append(e)
         self.lock.release()
 
     def clear(self):
@@ -325,11 +333,58 @@ class Voice(object):
             with open("/dev/null", "w") as devnull:
                 self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
 
+    def is_speaking(self):
+        if self.proc:
+            if self.proc.poll() is not None:
+                self.proc.wait()
+                self.proc = None
+                return False
+            else:
+                return True
+        else:
+            return False
+
     def exterminate(self):
         self.speak("exterminate")
 
     def fire_gun(self):
         self.speak("gun")
+
+class Camera(EventQueue):
+    def __init__(self):
+        super(Camera, self).__init__()
+        self.snapshot_handler = None
+        self.output_file = tempfile.mktemp()
+        self.proc = None
+
+    def register_handler(self, h):
+        self.snapshot_handler = h
+
+    def take_snapshot(self):
+        def action():
+            with open("/dev/null", "w") as devnull:
+                self.proc = subprocess.Popen(["streamer", "-s", "800x600", "-o", self.output_file], stdout=devnull, stderr=devnull)
+
+        def cleanup():
+            if self.is_busy():
+                return True
+            elif self.snapshot_handler:
+                with open(self.output_file) as f:
+                    self.snapshot_handler(f.read())
+
+        if os.path.exists("/dev/video0"):
+            self.add_if_empty(action, cleanup)
+
+    def is_busy(self):
+        if self.proc:
+            if self.proc.poll() is not None:
+                self.proc.wait()
+                self.proc = None
+                return False
+            else:
+                return True
+        else:
+            return False
 
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
@@ -351,6 +406,7 @@ class Dalek(object):
         self.drive = Drive()
         self.head = Head(self)
         self.voice = Voice(sound_dir)
+        self.camera = Camera()
         self.head.calibrate()
         self.thread = ControllerThread(self)
         self.thread.start()

@@ -1,4 +1,6 @@
+import base64
 import socket
+import threading
 
 DALEK_PORT = 12345
 
@@ -15,6 +17,8 @@ HEAD_TURN = "headturn"
 
 PLAY_SOUND = "playsound"
 STOP_SOUND = "stopsound"
+
+SNAPSHOT = "snapshot"
 
 
 def print_error(data):
@@ -37,12 +41,13 @@ class Buffer(object):
             return None
 
 
-class Controller(object):
+class Controller(threading.Thread):
     def __init__(self, addr):
         super(Controller, self).__init__()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.sock.connect((addr, DALEK_PORT))
+        self.start()
 
     def send(self, *msg):
         data = ":".join(map(str, msg))
@@ -64,9 +69,41 @@ class Controller(object):
     def stop_sound(self):
         self.send(STOP_SOUND)
 
+    def snapshot(self):
+        self.send(SNAPSHOT)
+
     def exit(self):
         self.send(EXIT)
         self.sock.close()
+
+    def run(self):
+        buf = Buffer()
+        while True:
+            data = self.sock.recv(4096)
+            if not data:
+                break
+
+            buf.add(data)
+
+            line = buf.get()
+            while line:
+                msg = line.strip().split(":")
+                print "Network received: '%s'" % str(msg)
+                if len(msg) >= 1:
+                    self.handle_recv(msg[0], msg[1:])
+                else:
+                    print_error(msg)
+                line = buf.get()
+
+    def handle_recv(self, cmd, args):
+        if cmd == SNAPSHOT:
+            if len(args) >= 1:
+                self.snapshot_received(base64.b64decode(args[0]))
+            else:
+                print_error([cmd] + args)
+
+    def snapshot_received(self, data):
+        raise NotImplementedError
 
 
 class Receiver(object):
@@ -106,6 +143,13 @@ class Receiver(object):
             self.sock.close()
             self.listen_sock.close()
 
+    def send(self, *msg):
+        data = ":".join(map(str, msg))
+        self.sock.send(data + "\n")
+
+    def send_snapshot(self, data):
+        self.send(SNAPSHOT, base64.b64encode(data))
+
     def handle_recv(self, cmd, args):
         if cmd == BEGIN:
             if len(args) >= 2:
@@ -126,6 +170,8 @@ class Receiver(object):
                 print_error([cmd] + args)
         elif cmd == STOP_SOUND:
             self.stop_sound()
+        elif cmd == SNAPSHOT:
+            self.snapshot()
         elif cmd == EXIT:
             self.alive = False
         else:
@@ -144,4 +190,7 @@ class Receiver(object):
         raise NotImplementedError
 
     def stop_sound(self):
+        raise NotImplementedError
+
+    def snapshot(self):
         raise NotImplementedError

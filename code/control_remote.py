@@ -12,6 +12,7 @@ from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
 
 parser = argparse.ArgumentParser(description="Control the Dalek remotely from another machine")
 parser.add_argument("addr", help="Address of the Dalek")
+parser.add_argument("snapshotFile", help="File in which to save snapshots")
 
 args = parser.parse_args()
 
@@ -19,7 +20,16 @@ pygame.init()
 screen = pygame.display.set_mode((320, 240))
 font = pygame.font.Font(None, 40)
 text = ""
-controller = Controller(args.addr)
+
+class RemoteController(Controller):
+    def __init__(self, addr):
+        super(RemoteController, self).__init__(addr)
+
+    def snapshot_received(self, data):
+        with open(args.snapshotFile, "w") as f:
+            f.write(data)
+
+controller = RemoteController(args.addr)
 
 repeat_command = None
 next_repeat = 0
@@ -73,6 +83,8 @@ while True:
                 controller.play_sound("doctor")
             elif event.key == pygame.K_0:
                 controller.play_sound("the-doctor")
+            elif event.key == pygame.K_RETURN:
+                controller.snapshot()
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:

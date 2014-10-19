@@ -17,6 +17,11 @@ class DalekReceiver(Receiver):
     def __init__(self, d):
         super(DalekReceiver, self).__init__()
         self.d = d
+
+        def snapshot_handler(data):
+            self.send_snapshot(data)
+        self.d.camera.register_handler(snapshot_handler)
+
         self.start()
 
     def begin_cmd(self, cmd, value):
@@ -43,6 +48,9 @@ class DalekReceiver(Receiver):
 
     def stop_sound(self):
         self.d.voice.stop()
+
+    def snapshot(self):
+        self.d.camera.take_snapshot()
 
 dalek = Dalek(args.soundDir)
 
