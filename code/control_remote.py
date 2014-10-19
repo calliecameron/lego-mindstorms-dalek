@@ -6,6 +6,7 @@ Dalek itself."""
 
 import argparse
 from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
+import io
 import PIL.Image
 import pygame
 import sys
@@ -27,7 +28,7 @@ class RemoteController(Controller):
         super(RemoteController, self).__init__(addr)
 
     def snapshot_received(self, data):
-        PIL.Image.fromarray(data).rotate(270).save(args.snapshotFile, "JPEG")
+        PIL.Image.open(io.BytesIO(data)).rotate(90).save(args.snapshotFile, "JPEG")
 
 controller = RemoteController(args.addr)
 
