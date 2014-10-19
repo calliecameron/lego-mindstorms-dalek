@@ -254,7 +254,7 @@ class Head(EventQueue):
         print self.motor.position
         self.motor.position = 0
         print self.motor.position
-        self.motor.stop_mode = "brake"
+        self.motor.stop_mode = "coast"
         self.motor.ramp_up_sp = 0
         self.motor.ramp_down_sp = 0
 
@@ -264,6 +264,7 @@ class Head(EventQueue):
     def update_motor_speed(self):
         speed = self.control.value * Head.HEAD_SPEED
         self.motor.pulses_per_second_sp = speed
+        print speed
         if speed == 0:
             self.motor.stop()
             print "stopping head motor"
