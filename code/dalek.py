@@ -224,17 +224,17 @@ class Head(EventQueue):
         self.parent.voice.wait()
 
         self.motor.reset()
-        self.motor.regulation_mode = "on"
+        self.motor.regulation_mode = "off"
         self.motor.stop_mode = "coast"
 
-        self.motor.pulses_per_second_sp = 400
+        self.motor.duty_cycle_sp = 65
         self.motor.start()
         wait_for_stop()
         self.motor.stop()
         pos1 = self.motor.position
         print pos1
 
-        self.motor.pulses_per_second_sp = -400
+        self.motor.duty_cycle_sp = -65
         self.motor.start()
         wait_for_stop()
         self.motor.stop()
@@ -255,8 +255,7 @@ class Head(EventQueue):
         self.motor.position = 0
         print self.motor.position
         self.motor.stop_mode = "coast"
-        self.motor.ramp_up_sp = 0
-        self.motor.ramp_down_sp = 0
+        self.motor.run_mode = "forever"
 
         self.parent.voice.exterminate()
         self.parent.voice.wait()
