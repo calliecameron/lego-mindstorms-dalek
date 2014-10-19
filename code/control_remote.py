@@ -38,7 +38,10 @@ while True:
             sys.exit(0)
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)
-            if event.key == pygame.K_w:
+            if event.key == pygame.K_ESCAPE:
+                controller.exit()
+                sys.exit(0)
+            elif event.key == pygame.K_w:
                 begin_cmd(DRIVE, 1.0)
             elif event.key == pygame.K_s:
                 begin_cmd(DRIVE, -1.0)

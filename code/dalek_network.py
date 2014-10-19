@@ -42,21 +42,22 @@ class Controller(object):
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.sock.connect((addr, DALEK_PORT))
 
-    def send(self, msg):
-        print "Network sending: '%s'" % msg
-        self.sock.send(msg + "\n")
+    def send(self, *msg):
+        data = ":".join(map(str, msg))
+        print "Network sending: '%s'" % data
+        self.sock.send(data + "\n")
 
     def begin_cmd(self, cmd, value):
-        self.send("%s:%s:%f" % (BEGIN, cmd, value))
+        self.send(BEGIN, cmd, value)
 
     def release_cmd(self, cmd, value):
-        self.send("%s:%s:%f" % (RELEASE, cmd, value))
+        self.send(RELEASE, cmd, value)
 
     def stop(self):
         self.send(STOP)
 
     def play_sound(self, sound):
-        self.send("%s:%s" % (PLAY_SOUND, sound))
+        self.send(PLAY_SOUND, sound)
 
     def stop_sound(self):
         self.send(STOP_SOUND)
