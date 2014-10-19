@@ -319,9 +319,9 @@ class Dalek(object):
     def __init__(self, sound_dir):
         super(Dalek, self).__init__()
         self.drive = Drive()
-        # self.head = Head(self)
+        self.head = Head(self)
         self.voice = Voice(sound_dir)
-        # self.head.calibrate()
+        self.head.calibrate()
         self.thread = ControllerThread(self)
         self.thread.start()
 
