@@ -11,7 +11,6 @@ import threading
 TICK_LENGTH_SECONDS = 0.1
 
 class TwoWayControl(object):
-
     def __init__(self):
         super(TwoWayControl, self).__init__()
         self.value = 0.0
@@ -210,7 +209,6 @@ class Head(EventQueue):
 
     def __init__(self, parent):
         super(Head, self).__init__()
-
         self.parent = parent
         self.motor = MediumMotor("B")
         self.control = TwoWayControl()
@@ -221,59 +219,55 @@ class Head(EventQueue):
             while self.motor.pulses_per_second != 0:
                 time.sleep(0.1)
 
-        self.parent.voice.speak("commence-awakening")
-        self.parent.voice.wait()
+        try:
+            self.parent.voice.speak("commence-awakening")
+            self.parent.voice.wait()
 
-        self.motor.reset()
-        self.motor.regulation_mode = "off"
-        self.motor.stop_mode = "coast"
+            self.motor.reset()
+            self.motor.regulation_mode = "off"
+            self.motor.stop_mode = "coast"
 
-        self.motor.duty_cycle_sp = 65
-        self.motor.start()
-        wait_for_stop()
-        self.motor.stop()
-        pos1 = self.motor.position
-        print pos1
+            self.motor.duty_cycle_sp = 65
+            self.motor.start()
+            wait_for_stop()
+            self.motor.stop()
+            pos1 = self.motor.position
 
-        self.motor.duty_cycle_sp = -65
-        self.motor.start()
-        wait_for_stop()
-        self.motor.stop()
-        pos2 = self.motor.position
-        print pos2
+            self.motor.duty_cycle_sp = -65
+            self.motor.start()
+            wait_for_stop()
+            self.motor.stop()
+            pos2 = self.motor.position
 
-        midpoint = (pos1 + pos2) / 2.0
-        print midpoint
+            midpoint = (pos1 + pos2) / 2.0
 
-        self.motor.regulation_mode = "on"
-        self.motor.stop_mode = "hold"
-        self.motor.ramp_up_sp = 500
-        self.motor.ramp_down_sp = 200
-        self.motor.run_position_limited(midpoint, 400)
-        wait_for_stop()
-        self.motor.stop()
-        print self.motor.position
-        self.motor.position = 0
-        print self.motor.position
-        self.motor.stop_mode = "coast"
-        self.motor.run_mode = "forever"
-        self.motor.ramp_up_sp = 0
-        self.motor.ramp_down_sp = 0
+            self.motor.regulation_mode = "on"
+            self.motor.stop_mode = "hold"
+            self.motor.ramp_up_sp = 500
+            self.motor.ramp_down_sp = 200
+            self.motor.run_position_limited(midpoint, 400)
+            wait_for_stop()
+            self.motor.stop()
+            self.motor.position = 0
+            self.motor.stop_mode = "brake"
+            self.motor.run_mode = "forever"
+            self.motor.ramp_up_sp = 0
+            self.motor.ramp_down_sp = 0
 
+            self.parent.voice.exterminate()
+            self.parent.voice.wait()
 
-        self.parent.voice.exterminate()
-        self.parent.voice.wait()
+        except:
+            self.shutdown()
+            raise
 
     def update_motor_speed(self):
         speed = self.control.value * Head.HEAD_SPEED
         self.motor.pulses_per_second_sp = speed
-        print speed
         if speed == 0:
             self.motor.stop()
-            print "stopping head motor"
         else:
             self.motor.start()
-            print "starting head motor"
 
     def stop_action(self):
         def action():
@@ -292,11 +286,6 @@ class Head(EventQueue):
             self.control.release(value)
             self.update_motor_speed()
         return action
-
-    # def stopped_cond(self):
-    #     def cond():
-    #         return self.motor.pulses_per_second == 0
-    #     return cond
 
     def pre_process(self):
         if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
@@ -370,12 +359,10 @@ class Camera(EventQueue):
 
     def take_snapshot(self):
         def action():
-            print "foo"
             with open("/dev/null", "w") as devnull:
                 self.proc = subprocess.Popen(["streamer", "-s", "800x600", "-o", self.output_file], stdout=devnull, stderr=devnull)
 
         def cleanup():
-            print "bar"
             if self.is_busy():
                 return True
             elif self.snapshot_handler:
@@ -383,7 +370,6 @@ class Camera(EventQueue):
                     self.snapshot_handler(f.read())
 
         if os.path.exists("/dev/video0"):
-            print "baz"
             self.add_if_empty(action, cleanup)
 
     def is_busy(self):
@@ -402,9 +388,22 @@ class ControllerThread(threading.Thread):
         super(ControllerThread, self).__init__()
         self.parent = parent
         self.daemon = True
+        self.alive = True
+        self.lock = threading.Lock()
+
+    def is_alive(self):
+        self.lock.acquire()
+        a = self.alive
+        self.lock.release()
+        return a
+
+    def shutdown(self):
+        self.lock.acquire()
+        self.alive = False
+        self.lock.release()
 
     def run(self):
-        while True:
+        while self.is_alive():
             self.parent.drive.process()
             self.parent.head.process()
             self.parent.camera.process()
@@ -426,6 +425,8 @@ class Dalek(object):
     def shutdown(self):
         self.drive.shutdown()
         self.head.shutdown()
+        self.thread.shutdown()
+        self.thread.join()
         self.voice.stop()
         self.voice.speak("status-hibernation")
         self.voice.wait()
