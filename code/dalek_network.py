@@ -4,9 +4,13 @@ DALEK_PORT = 12345
 
 BEGIN = "begin"
 RELEASE = "release"
+
 DRIVE = "drive"
 TURN = "turn"
 STOP = "stop"
+
+PLAY_SOUND = "playsound"
+STOP_SOUND = "stopsound"
 
 
 class Controller(object):
@@ -27,6 +31,12 @@ class Controller(object):
 
     def stop(self):
         self.send(STOP)
+
+    def play_sound(self, sound):
+        self.send("%s:%s" % (PLAY_SOUND, sound))
+
+    def stop_sound(self):
+        self.send(STOP_SOUND)
 
 
 class Receiver(MastermindServerTCP):
@@ -53,6 +63,13 @@ class Receiver(MastermindServerTCP):
                     self.print_error(data)
             elif msg[0] == STOP:
                 self.stop()
+            elif msg[0] == PLAY_SOUND:
+                if len(msg) >= 2:
+                    self.play_sound(msg[1])
+                else:
+                    self.print_error(data)
+            elif msg[0] == STOP_SOUND:
+                self.stop_sound()
             else:
                 self.print_error(data)
         else:
@@ -70,4 +87,10 @@ class Receiver(MastermindServerTCP):
         raise NotImplementedError
 
     def stop(self):
+        raise NotImplementedError
+
+    def play_sound(self, sound):
+        raise NotImplementedError
+
+    def stop_sound(self):
         raise NotImplementedError

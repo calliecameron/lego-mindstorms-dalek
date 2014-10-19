@@ -45,6 +45,10 @@ while True:
                 begin_cmd(TURN, 1.0)
             elif event.key == pygame.K_d:
                 begin_cmd(TURN, -1.0)
+            elif event.ket == pygame.K_1:
+                controller.play_sound("exterminate")
+            elif event.ket == pygame.K_2:
+                controller.play_sound("gun")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:

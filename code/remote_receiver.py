@@ -34,6 +34,12 @@ class DalekReceiver(Receiver):
     def stop(self):
         self.d.drive.stop()
 
+    def play_sound(self, sound):
+        self.d.voice.speak(sound)
+
+    def stop_sound(self):
+        self.d.voice.stop()
+
 dalek = Dalek(args.soundDir)
 
 try:
