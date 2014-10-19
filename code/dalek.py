@@ -28,8 +28,9 @@ class TwoWayControl(object):
         self.value = clamp_control_range(value)
 
     def release(self, direction):
-        print "release: value %s, direction %s" % (str(self.value), str(direction))
+        print "release: value %s, direction %s, %s, %s" % (str(self.value), str(direction), sign(self.value), sign(direction))
         if sign(self.value) == sign(direction):
+            print "here"
             self.off()
 
 
