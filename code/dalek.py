@@ -340,6 +340,7 @@ class ControllerThread(threading.Thread):
     def run(self):
         while True:
             self.parent.drive.process()
+            self.parent.head.process()
             time.sleep(TICK_LENGTH_SECONDS)
 
 class Dalek(object):
