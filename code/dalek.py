@@ -96,7 +96,8 @@ class EventQueue(object):
     def process(self):
         self.lock.acquire()
         self.pre_process()
-        print str(self.queue)
+        if self.queue:
+            print str(self.queue)
         i = 0
         while i < len(self.queue):
             if self.queue[i]():
@@ -256,6 +257,9 @@ class Head(EventQueue):
         print self.motor.position
         self.motor.stop_mode = "coast"
         self.motor.run_mode = "forever"
+        self.motor.ramp_up_sp = 0
+        self.motor.ramp_down_sp = 0
+
 
         self.parent.voice.exterminate()
         self.parent.voice.wait()
@@ -294,10 +298,10 @@ class Head(EventQueue):
     #         return self.motor.pulses_per_second == 0
     #     return cond
 
-    # def pre_process(self):
-    #     if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
-    #         or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
-    #         self.shutdown()
+    def pre_process(self):
+        if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
+            or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
+            self.shutdown()
 
     def stop(self):
         self.replace(self.stop_action())
@@ -366,10 +370,12 @@ class Camera(EventQueue):
 
     def take_snapshot(self):
         def action():
+            print "foo"
             with open("/dev/null", "w") as devnull:
                 self.proc = subprocess.Popen(["streamer", "-s", "800x600", "-o", self.output_file], stdout=devnull, stderr=devnull)
 
         def cleanup():
+            print "bar"
             if self.is_busy():
                 return True
             elif self.snapshot_handler:
@@ -377,6 +383,7 @@ class Camera(EventQueue):
                     self.snapshot_handler(f.read())
 
         if os.path.exists("/dev/video0"):
+            print "baz"
             self.add_if_empty(action, cleanup)
 
     def is_busy(self):
@@ -400,6 +407,7 @@ class ControllerThread(threading.Thread):
         while True:
             self.parent.drive.process()
             self.parent.head.process()
+            self.parent.camera.process()
             time.sleep(TICK_LENGTH_SECONDS)
 
 class Dalek(object):
