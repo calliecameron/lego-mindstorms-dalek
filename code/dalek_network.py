@@ -19,6 +19,22 @@ def print_error(data):
     print "Network received bad message: '%s'" % str(data)
 
 
+class Buffer(object):
+    def __init__(self):
+        self.data = ""
+
+    def add(self, data):
+        self.data = self.data + str(data)
+
+    def get(self):
+        lines = self.data.split("\n")
+        if len(lines) > 1:
+            self.data = "\n".join(lines[1:])
+            return lines[0]
+        else:
+            return None
+
+
 class Controller(object):
     def __init__(self, addr):
         super(Controller, self).__init__()
@@ -55,6 +71,7 @@ class Receiver(object):
         super(Receiver, self).__init__()
         self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock = None
+        self.buf = Buffer()
         self.alive = True
 
     def start(self):
@@ -69,12 +86,17 @@ class Receiver(object):
                 if not data:
                     break
 
-                msg = str(data).strip().split(":")
-                print "Network received: '%s'" % str(msg)
-                if len(msg) >= 1:
-                    self.handle_recv(msg[0], msg[1:])
-                else:
-                    print_error(msg)
+                self.buf.add(data)
+
+                line = self.buf.get()
+                while line:
+                    msg = line.strip().split(":")
+                    print "Network received: '%s'" % str(msg)
+                    if len(msg) >= 1:
+                        self.handle_recv(msg[0], msg[1:])
+                    else:
+                        print_error(msg)
+                    line = self.buf.get()
 
         finally:
             print "Network: shutting down"
