@@ -42,6 +42,39 @@ def begin_cmd(cmd, value):
         controller.begin_cmd(cmd, value)
     repeat_command = action
 
+
+sound_dict = { pygame.K_1: "exterminate",
+               pygame.K_2: "gun",
+               pygame.K_3: "exterminate-exterminate-exterminate",
+               pygame.K_4: "identify-yourself",
+               pygame.K_5: "report",
+               pygame.K_6: "social-interaction-will-cease",
+               pygame.K_7: "why",
+               pygame.K_8: "you-would-make-a-good-dalek",
+               pygame.K_9: "doctor",
+               pygame.K_0: "the-doctor",
+               pygame.K_F1: "would-you-care-for-some-tea",
+               pygame.K_F2: "can-i-be-of-assistance",
+               pygame.K_F3: "please-excuse-me",
+               pygame.K_F4: "explain",
+               pygame.K_F5: "cease-talking",
+               pygame.K_F6: "that-is-incorrect",
+               pygame.K_F7: "you-will-follow",
+               pygame.K_F8: "daleks-are-supreme",
+               pygame.K_F9: "you-will-be-necessary",
+               pygame.K_F10: "you-will-identify",
+               pygame.K_F11: "it-is-the-doctor",
+               pygame.K_F12: "the-doctor-must-die",
+               pygame.K_p: "bring-him-to-me",
+               pygame.K_i: "i-bring-you-the-human",
+               pygame.K_u: "your-loyalty-will-be-rewarded",
+               pygame.K_y: "daleks-do-not-question-orders",
+               pygame.K_t: "which-of-you-is-least-important",
+               pygame.K_l: "this-human-is-our-best-option",
+               pygame.K_k: "i-have-duties-to-perform",
+               pygame.K_j: "daleks-have-no-concept-of-worry",
+               pygame.K_o: "then-hear-me-talk-now"}
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -64,28 +97,10 @@ while True:
                 controller.begin_cmd(HEAD_TURN, -1.0)
             elif event.key == pygame.K_e:
                 controller.begin_cmd(HEAD_TURN, 1.0)
-            elif event.key == pygame.K_1:
-                controller.play_sound("exterminate")
-            elif event.key == pygame.K_2:
-                controller.play_sound("gun")
-            elif event.key == pygame.K_3:
-                controller.play_sound("exterminate-exterminate-exterminate")
-            elif event.key == pygame.K_4:
-                controller.play_sound("identify-yourself")
-            elif event.key == pygame.K_5:
-                controller.play_sound("report")
-            elif event.key == pygame.K_6:
-                controller.play_sound("social-interaction-will-cease")
-            elif event.key == pygame.K_7:
-                controller.play_sound("why")
-            elif event.key == pygame.K_8:
-                controller.play_sound("you-would-make-a-good-dalek")
-            elif event.key == pygame.K_9:
-                controller.play_sound("doctor")
-            elif event.key == pygame.K_0:
-                controller.play_sound("the-doctor")
             elif event.key == pygame.K_RETURN:
                 controller.snapshot()
+            elif event.key in sound_dict:
+                controller.play_sound(sound_dict[event.key])
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
