@@ -34,6 +34,7 @@ def begin_cmd(cmd, value):
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            controller.exit()
             sys.exit(0)
         elif event.type == pygame.KEYDOWN:
             text = "down: " + pygame.key.name(event.key)

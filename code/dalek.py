@@ -332,3 +332,4 @@ class Dalek(object):
     def shutdown(self):
         self.drive.shutdown()
         # self.head.shutdown()
+        self.voice.stop()
