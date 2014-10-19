@@ -206,9 +206,7 @@ class Head(EventQueue):
 
         self.parent = parent
         self.motor = MediumMotor("B")
-        self.head_state = HEAD_STOP
-        self.head_factor = 1.0
-        self.camera_process = None
+        self.control = TwoWayControl()
 
     def calibrate(self):
         def wait_for_stop():
@@ -216,7 +214,7 @@ class Head(EventQueue):
             while self.motor.pulses_per_second != 0:
                 time.sleep(0.1)
 
-        self.parent.voice.exterminate()
+        self.parent.voice.speak("commence-awakening")
         self.parent.voice.wait()
 
         self.motor.reset()
@@ -253,20 +251,18 @@ class Head(EventQueue):
 
     def stop_action(self):
         def action():
-            self.head_state = HEAD_STOP
-            self.head_factor = 0.0
             self.motor.stop()
         return action
 
-    def stopped_cond(self):
-        def cond():
-            return self.motor.pulses_per_second == 0
-        return cond
+    # def stopped_cond(self):
+    #     def cond():
+    #         return self.motor.pulses_per_second == 0
+    #     return cond
 
-    def pre_process(self):
-        if ((self.head_state == HEAD_LEFT and self.motor.position < -HEAD_LIMIT)
-            or (self.head_state == HEAD_RIGHT and self.motor.position > HEAD_LIMIT)):
-            self.shutdown()
+    # def pre_process(self):
+    #     if ((self.head_state == HEAD_LEFT and self.motor.position < -HEAD_LIMIT)
+    #         or (self.head_state == HEAD_RIGHT and self.motor.position > HEAD_LIMIT)):
+    #         self.shutdown()
 
     def stop(self):
         self.replace(self.stop_action())
@@ -333,3 +329,5 @@ class Dalek(object):
         self.drive.shutdown()
         # self.head.shutdown()
         self.voice.stop()
+        self.voice.speak("status-hibernation")
+        self.voice.wait()

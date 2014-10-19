@@ -53,6 +53,20 @@ while True:
                 controller.play_sound("exterminate")
             elif event.key == pygame.K_2:
                 controller.play_sound("gun")
+            elif event.key == pygame.K_3:
+                controller.play_sound("exterminate-exterminate-exterminate")
+            elif event.key == pygame.K_4:
+                controller.play_sound("identify-yourself")
+            elif event.key == pygame.K_5:
+                controller.play_sound("report")
+            elif event.key == pygame.K_6:
+                controller.play_sound("social-interaction-will-cease")
+            elif event.key == pygame.K_7:
+                controller.play_sound("why")
+            elif event.key == pygame.K_8:
+                controller.play_sound("you-would-make-a-good-dalek")
+            elif event.key == pygame.K_9:
+                controller.play_sound("the-doctor")
         elif event.type == pygame.KEYUP:
             text = "up: " + pygame.key.name(event.key)
             if event.key == pygame.K_w:
