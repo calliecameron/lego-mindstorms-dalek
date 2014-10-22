@@ -60,8 +60,6 @@ class EventQueue(object):
     def process(self):
         self.lock.acquire()
         self.pre_process()
-        if self.queue:
-            print str(self.queue)
         i = 0
         while i < len(self.queue):
             if self.queue[i]():
