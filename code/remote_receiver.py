@@ -52,7 +52,7 @@ class DalekReceiver(Receiver):
     def snapshot(self):
         self.d.camera.take_snapshot()
 
-dalek = Dalek(args.soundDir)
+dalek = Dalek(args.soundDir, False)
 
 try:
     DalekReceiver(dalek)

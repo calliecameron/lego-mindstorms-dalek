@@ -213,7 +213,7 @@ class Head(EventQueue):
         self.motor = MediumMotor("B")
         self.control = TwoWayControl()
 
-    def calibrate(self):
+    def calibrate(self, calibrate_position):
         def wait_for_stop():
             time.sleep(2)
             while self.motor.pulses_per_second != 0:
@@ -224,30 +224,34 @@ class Head(EventQueue):
             self.parent.voice.wait()
 
             self.motor.reset()
-            self.motor.regulation_mode = "off"
-            self.motor.stop_mode = "coast"
 
-            self.motor.duty_cycle_sp = 65
-            self.motor.start()
-            wait_for_stop()
-            self.motor.stop()
-            pos1 = self.motor.position
+            if calibrate_position:
+                self.motor.regulation_mode = "off"
+                self.motor.stop_mode = "coast"
 
-            self.motor.duty_cycle_sp = -65
-            self.motor.start()
-            wait_for_stop()
-            self.motor.stop()
-            pos2 = self.motor.position
+                self.motor.duty_cycle_sp = 65
+                self.motor.start()
+                wait_for_stop()
+                self.motor.stop()
+                pos1 = self.motor.position
 
-            midpoint = (pos1 + pos2) / 2.0
+                self.motor.duty_cycle_sp = -65
+                self.motor.start()
+                wait_for_stop()
+                self.motor.stop()
+                pos2 = self.motor.position
+
+                midpoint = (pos1 + pos2) / 2.0
+
+                self.motor.regulation_mode = "on"
+                self.motor.stop_mode = "hold"
+                self.motor.ramp_up_sp = 500
+                self.motor.ramp_down_sp = 200
+                self.motor.run_position_limited(midpoint, 400)
+                wait_for_stop()
+                self.motor.stop()
 
             self.motor.regulation_mode = "on"
-            self.motor.stop_mode = "hold"
-            self.motor.ramp_up_sp = 500
-            self.motor.ramp_down_sp = 200
-            self.motor.run_position_limited(midpoint, 400)
-            wait_for_stop()
-            self.motor.stop()
             self.motor.position = 0
             self.motor.stop_mode = "brake"
             self.motor.run_mode = "forever"
@@ -412,13 +416,13 @@ class ControllerThread(threading.Thread):
 class Dalek(object):
     """Main Dalek controller"""
 
-    def __init__(self, sound_dir):
+    def __init__(self, sound_dir, calibrate_head=True):
         super(Dalek, self).__init__()
         self.drive = Drive()
         self.head = Head(self)
         self.voice = Voice(sound_dir)
         self.camera = Camera()
-        self.head.calibrate()
+        self.head.calibrate(calibrate_head)
         self.thread = ControllerThread(self)
         self.thread.start()
 
