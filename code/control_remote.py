@@ -5,6 +5,7 @@ Dalek itself."""
 
 
 import argparse
+from dalek_common import EventQueue, RunAfterTime, RepeatingAction
 from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
 import io
 import PIL.Image
@@ -29,7 +30,8 @@ class RemoteController(Controller):
 class Main(object):
 
     FRAME_RATE = 60
-    REPEAT_TIME = 5 * FRAME_RATE
+    TICK_LENGTH_SECONDS = 1.0 / float(FRAME_RATE)
+    REPEAT_TIME_SECONDS = 5
 
     sound_dict = {pygame.K_1: "exterminate",
                   pygame.K_2: "gun",
@@ -69,53 +71,65 @@ class Main(object):
         self.font = pygame.font.Font(None, 40)
         self.screen_text = ""
         self.controller = RemoteController(addr, snapshot_file)
-
-        self.repeat_command = None
-        self.next_repeat = 0
+        self.drive_queue = EventQueue()
+        self.other_queue = EventQueue()
 
         self.random_mode = False
-        self.next_random_event = 0
 
         try:
             self.main_loop()
         finally:
             self.controller.exit()
 
-    def begin_drive_cmd(self, cmd, value, manual=True):
-        if self.random_mode and manual:
-            self.random_mode = False
-            self.controller.stop()
-        self.controller.begin_cmd(cmd, value)
-        self.repeat_command = None
-
-    def begin_repeated_drive_cmd(self, cmd, value, manual=True):
-        if self.random_mode and manual:
-            self.random_mode = False
-            self.controller.stop()
-        self.controller.begin_cmd(cmd, value)
+    def begin_cmd_action(self, cmd, value, repeat):
         def action():
             self.controller.begin_cmd(cmd, value)
-        self.repeat_command = action
-        self.next_repeat = Main.REPEAT_TIME
+
+        if repeat:
+            return RepeatingAction(Main.REPEAT_TIME_SECONDS, action, Main.TICK_LENGTH_SECONDS)
+        else:
+            return action
+
+    def release_cmd_action(self, cmd, value):
+        def action():
+            self.controller.release_cmd(cmd, value)
+        return action
+
+    def stop_action(self):
+        def action():
+            self.controller.stop()
+        return action
+
+    def start_random_mode(self):
+        if not self.random_mode:
+            self.random_mode = True
+            self.controller.stop()
+            self.drive_queue.clear()
+            self.other_queue.clear()
+
+    def maybe_stop_random_mode(self, manual):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
+            self.drive_queue.clear()
+            self.other_queue.clear()
+
+
+    def begin_drive_cmd(self, cmd, value, repeat, manual=True):
+        self.maybe_stop_random_mode(manual)
+        self.drive_queue.replace(self.begin_cmd_action(cmd, value, repeat))
 
     def release_drive_cmd(self, cmd, value, manual=True):
-        if self.random_mode and manual:
-            self.random_mode = False
-            self.controller.stop()
-        self.controller.release_cmd(cmd, value)
-        self.repeat_command = None
+        self.maybe_stop_random_mode(manual)
+        self.drive_queue.replace(self.release_cmd_action(cmd, value))
 
     def begin_head_cmd(self, cmd, value, manual=True):
-        if self.random_mode and manual:
-            self.random_mode = False
-            self.controller.stop()
-        self.controller.begin_cmd(cmd, value)
+        self.maybe_stop_random_mode(manual)
+        self.other_queue.add(self.begin_cmd_action(cmd, value, False))
 
     def release_head_cmd(self, cmd, value, manual=True):
-        if self.random_mode and manual:
-            self.random_mode = False
-            self.controller.stop()
-        self.controller.release_cmd(cmd, value)
+        self.maybe_stop_random_mode(manual)
+        self.other_queue.add(self.release_cmd_action(cmd, value))
 
     def main_loop(self):
         while True:
@@ -127,13 +141,13 @@ class Main(object):
                     if event.key == pygame.K_ESCAPE:
                         return
                     elif event.key == pygame.K_w:
-                        self.begin_repeated_drive_cmd(DRIVE, 1.0)
+                        self.begin_drive_cmd(DRIVE, 1.0, True)
                     elif event.key == pygame.K_s:
-                        self.begin_repeated_drive_cmd(DRIVE, -1.0)
+                        self.begin_drive_cmd(DRIVE, -1.0, True)
                     elif event.key == pygame.K_a:
-                        self.begin_repeated_drive_cmd(TURN, -1.0)
+                        self.begin_drive_cmd(TURN, -1.0, True)
                     elif event.key == pygame.K_d:
-                        self.begin_repeated_drive_cmd(TURN, 1.0)
+                        self.begin_drive_cmd(TURN, 1.0, True)
                     elif event.key == pygame.K_q:
                         self.begin_head_cmd(HEAD_TURN, -1.0)
                     elif event.key == pygame.K_e:
@@ -143,9 +157,7 @@ class Main(object):
                     elif event.key == pygame.K_v:
                         self.controller.toggle_verbose()
                     elif event.key == pygame.K_SPACE:
-                        self.controller.stop()
-                        self.random_mode = True
-                        self.next_random_event = 0
+                        self.start_random_mode()
                     elif event.key in Main.sound_dict:
                         self.controller.play_sound(Main.sound_dict[event.key])
                 elif event.type == pygame.KEYUP:
@@ -163,6 +175,8 @@ class Main(object):
                     elif event.key == pygame.K_e:
                         self.release_head_cmd(HEAD_TURN, 1.0)
 
+            self.drive_queue.process()
+            self.other_queue.process()
 
             self.screen.fill((255, 255, 255))
             disp = self.font.render(self.screen_text, True, (0, 0, 0))
@@ -173,19 +187,11 @@ class Main(object):
             pygame.display.flip()
             time.sleep(1/float(Main.FRAME_RATE))
 
-            if self.random_mode:
-                self.next_random_event -= 1
-                if self.next_random_event <= 0:
-                    self.begin_drive_cmd(DRIVE, 0.5)
-                    self.next_random_event = 10 * Main.FRAME_RATE
-
-
-            if self.repeat_command:
-                self.next_repeat -= 1
-                if self.next_repeat <= 0:
-                    self.next_repeat = Main.REPEAT_TIME
-                    self.repeat_command()
-
+            # if self.random_mode:
+            #     self.next_random_event -= 1
+            #     if self.next_random_event <= 0:
+            #         self.begin_drive_cmd(DRIVE, 0.5, False)
+            #         self.next_random_event = 10 * Main.FRAME_RATE
 
 pygame.init()
 
