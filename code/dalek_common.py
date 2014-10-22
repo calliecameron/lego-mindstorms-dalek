@@ -97,7 +97,7 @@ class RepeatingAction(object):
     def __init__(self, seconds, action, tick_length_seconds):
         super(RepeatingAction, self).__init__()
         self.init_ticks = int(seconds / tick_length_seconds)
-        self.ticks = self.init_ticks
+        self.ticks = 0
         self.action = action
 
     def __call__(self):
@@ -107,6 +107,19 @@ class RepeatingAction(object):
         else:
             self.ticks -= 1
         return True
+
+class DurationAction(object):
+    def __init__(self, seconds, start_action, end_action, tick_length_seconds):
+        super(DurationAction, self).__init__()
+        self.start_action = start_action
+        self.end_timer = RunAfterTime(seconds, end_action, tick_length_seconds)
+
+    def __call__(self):
+        if self.start_action:
+            self.start_action()
+            self.start_action = None
+
+        return self.end_timer()
 
 class RunAfterCondition(object):
     def __init__(self, cond, action):

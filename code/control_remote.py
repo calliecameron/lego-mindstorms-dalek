@@ -5,11 +5,12 @@ Dalek itself."""
 
 
 import argparse
-from dalek_common import EventQueue, RunAfterTime, RepeatingAction
+from dalek_common import EventQueue, RunAfterTime, RepeatingAction, DurationAction
 from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
 import io
 import PIL.Image
 import pygame
+import random
 import subprocess
 import sys
 import time
@@ -95,6 +96,12 @@ class Main(object):
             self.controller.release_cmd(cmd, value)
         return action
 
+    def timed_key_press_action(self, seconds, cmd, value):
+        return DurationAction(seconds,
+                              self.begin_cmd_action(cmd, value, False),
+                              self.release_cmd_action(cmd, value),
+                              Main.TICK_LENGTH_SECONDS)
+
     def stop_action(self):
         def action():
             self.controller.stop()
@@ -106,6 +113,7 @@ class Main(object):
             self.controller.stop()
             self.drive_queue.clear()
             self.other_queue.clear()
+            self.drive_queue.add(RandomModeAction(self))
 
     def maybe_stop_random_mode(self, manual):
         if self.random_mode and manual:
@@ -187,11 +195,45 @@ class Main(object):
             pygame.display.flip()
             time.sleep(1/float(Main.FRAME_RATE))
 
-            # if self.random_mode:
-            #     self.next_random_event -= 1
-            #     if self.next_random_event <= 0:
-            #         self.begin_drive_cmd(DRIVE, 0.5, False)
-            #         self.next_random_event = 10 * Main.FRAME_RATE
+
+class RandomModeAction(object):
+
+    TIMER_MIN = 10 * Main.FRAME_RATE
+    TIMER_MAX = 30 * Main.FRAME_RATE
+
+    def __init__(self, parent):
+        super(RandomModeAction, self).__init__()
+        self.parent = parent
+        self.timer = random.randint(RandomModeAction.TIMER_MIN, RandomModeAction.TIMER_MAX)
+
+    def random_drive_action(self, cmd):
+        self.parent.drive_queue.add(self.parent.timed_key_press_action(random.uniform(1, 8),
+                                                                       cmd,
+                                                                       random.uniform(-0.5, 0.5)))
+
+    def random_head_action(self):
+        self.parent.other_queue.add(self.parent.timed_key_press_action(random.uniform(1, 3),
+                                                                       HEAD_TURN,
+                                                                       random.uniform(-0.5, 0.5)))
+
+    def random_speech(self):
+        self.parent.controller.play_sound(random.choice(Main.sound_dict))
+
+    def __call__(self):
+        if self.timer <= 0:
+            choice = random.randint(0, 3)
+            if choice == 0:
+                self.random_drive_action(DRIVE)
+            elif choice == 1:
+                self.random_drive_action(TURN)
+            elif choice == 2:
+                self.random_head_action()
+            elif choice == 3:
+                self.random_speech()
+        else:
+            self.timer -= 1
+        return True
+
 
 pygame.init()
 
