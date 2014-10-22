@@ -44,14 +44,19 @@ class Buffer(object):
 class Controller(threading.Thread):
     def __init__(self, addr):
         super(Controller, self).__init__()
+        self.verbose = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.sock.connect((addr, DALEK_PORT))
         self.start()
 
+    def toggle_verbose(self):
+        self.verbose = not self.verbose
+
     def send(self, *msg):
         data = ":".join(map(str, msg))
-        print "Network sending: '%s'" % data
+        if self.verbose:
+            print "Network sending: '%s'" % data
         self.sock.send(data + "\n")
 
     def begin_cmd(self, cmd, value):
@@ -88,7 +93,8 @@ class Controller(threading.Thread):
             line = buf.get()
             while line:
                 msg = line.strip().split(":")
-                print "Network received: '%s'" % str(msg)
+                if self.verbose:
+                    print "Network received: '%s'" % str(msg)
                 if len(msg) >= 1:
                     self.handle_recv(msg[0], msg[1:])
                 else:
