@@ -81,31 +81,41 @@ class Main(object):
         finally:
             self.controller.exit()
 
-    def begin_drive_cmd(self, cmd, value):
+    def begin_drive_cmd(self, cmd, value, manual=True):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
         self.controller.begin_cmd(cmd, value)
         self.repeat_command = None
-        self.random_mode = False
 
-    def begin_repeated_drive_cmd(self, cmd, value):
+    def begin_repeated_drive_cmd(self, cmd, value, manual=True):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
         self.controller.begin_cmd(cmd, value)
         def action():
             self.controller.begin_cmd(cmd, value)
         self.repeat_command = action
         self.next_repeat = Main.REPEAT_TIME
-        self.random_mode = False
 
-    def release_drive_cmd(self, cmd, value):
+    def release_drive_cmd(self, cmd, value, manual=True):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
         self.controller.release_cmd(cmd, value)
         self.repeat_command = None
-        self.random_mode = False
 
-    def begin_head_cmd(self, cmd, value):
+    def begin_head_cmd(self, cmd, value, manual=True):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
         self.controller.begin_cmd(cmd, value)
-        self.random_mode = False
 
-    def release_head_cmd(self, cmd, value):
+    def release_head_cmd(self, cmd, value, manual=True):
+        if self.random_mode and manual:
+            self.random_mode = False
+            self.controller.stop()
         self.controller.release_cmd(cmd, value)
-        self.random_mode = False
 
     def main_loop(self):
         while True:
@@ -133,6 +143,7 @@ class Main(object):
                     elif event.key == pygame.K_v:
                         self.controller.toggle_verbose()
                     elif event.key == pygame.K_SPACE:
+                        self.controller.stop()
                         self.random_mode = True
                         self.next_random_event = 0
                     elif event.key in Main.sound_dict:
@@ -167,6 +178,7 @@ class Main(object):
                 if self.next_random_event <= 0:
                     self.begin_drive_cmd(DRIVE, 0.5)
                     self.next_random_event = 10 * Main.FRAME_RATE
+
 
             if self.repeat_command:
                 self.next_repeat -= 1
