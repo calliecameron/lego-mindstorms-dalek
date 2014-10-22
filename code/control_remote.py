@@ -47,6 +47,19 @@ SOUND_DICT = {pygame.K_1: "exterminate",
               pygame.K_j: "daleks-have-no-concept-of-worry",
               pygame.K_o: "then-hear-me-talk-now"}
 
+RANDOM_SOUNDS = ["exterminate",
+                 "gun",
+                 "exterminate-exterminate-exterminate",
+                 "report",
+                 "social-interaction-will-cease",
+                 "you-would-make-a-good-dalek",
+                 "would-you-care-for-some-tea",
+                 "explain",
+                 "cease-talking",
+                 "daleks-are-supreme",
+                 "you-will-identify",
+                 "the-doctor-must-die"]
+
 
 class RemoteController(Controller):
     def __init__(self, addr, snapshot_file):
@@ -201,48 +214,48 @@ class RandomModeAction(object):
         self.parent = parent
         self.timer = 0
         self.set_timer(10)
+        self.snapshot_timer = 0
 
     def set_timer(self, min_time):
         min_time = int(min_time)
-        self.timer = random.randint((min_time + 3) * Main.FRAME_RATE, (min_time + 13) * Main.FRAME_RATE)
+        self.timer = random.randint((min_time + 3) * Main.FRAME_RATE, (min_time + 10) * Main.FRAME_RATE)
         print "Random timer: %f s (%d ticks)" % (self.timer / float(Main.FRAME_RATE), self.timer)
 
     def random_drive_action(self, cmd):
         length = random.uniform(3, 10)
         self.parent.drive_queue.add(self.parent.timed_key_press_action(length,
                                                                        cmd,
-                                                                       random.uniform(-0.7, 0.7)))
+                                                                       random.choice([-0.5, 0.5])))
         return length
 
     def random_head_action(self):
-        length = random.uniform(3, 5)
+        length = random.uniform(1, 5)
         self.parent.other_queue.add(self.parent.timed_key_press_action(length,
                                                                        HEAD_TURN,
-                                                                       random.uniform(-1, 1)))
+                                                                       random.choice([-1, 1])))
         return length
 
     def random_speech(self):
-        self.parent.controller.play_sound(SOUND_DICT[random.choice(SOUND_DICT.keys())])
-        return 5
-
-    def snapshot(self):
-        self.parent.controller.snapshot()
+        self.parent.controller.play_sound(random.choice(RANDOM_SOUNDS))
         return 5
 
     def __call__(self):
+        self.snapshot_timer += 1
+        if self.snapshot_timer >= 60 * Main.FRAME_RATE:
+            self.parent.controller.snapshot()
+            self.snapshot_timer = 0
+
         if self.timer <= 0:
-            choice = random.randint(0, 4)
+            choice = random.randint(0, 99)
             length = 0
-            if choice == 0:
-                length = self.random_drive_action(DRIVE)
-            elif choice == 1:
-                length = self.random_drive_action(TURN)
-            elif choice == 2:
+            if choice < 25:
                 length = self.random_head_action()
-            elif choice == 3:
+            elif choice < 50:
+                length = self.random_drive_action(DRIVE)
+            elif choice < 75:
+                length = self.random_drive_action(TURN)
+            else:
                 length = self.random_speech()
-            elif choice == 4:
-                length = self.snapshot()
 
             self.set_timer(length)
         else:
