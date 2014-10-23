@@ -280,6 +280,7 @@ class Voice(EventQueue):
             with open(path) as f:
                 for line in f:
                     l.append(float(line.strip()))
+            print "Sound flash: %s" % l
 
             if len(l) % 2 == 0:
                 i = 0

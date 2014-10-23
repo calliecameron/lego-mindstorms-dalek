@@ -20,10 +20,11 @@ def sign(x):
 
 
 class EventQueue(object):
-    def __init__(self):
+    def __init__(self, verbose=False):
         super(EventQueue, self).__init__()
         self.queue = []
         self.lock = threading.Condition(threading.RLock())
+        self.verbose = verbose
 
     def add(self, *events):
         self.lock.acquire()
@@ -60,6 +61,8 @@ class EventQueue(object):
     def process(self):
         self.lock.acquire()
         self.pre_process()
+        if self.verbose and self.queue:
+            print self.queue
         i = 0
         while i < len(self.queue):
             if self.queue[i]():
@@ -91,6 +94,10 @@ class RunAfterTime(object):
             self.ticks -= 1
             return True
 
+    def __repr__(self):
+        return "RunAfterTime %d [%s]" % (self.ticks, self.action)
+
+
 class RepeatingAction(object):
     def __init__(self, seconds, action, tick_length_seconds):
         super(RepeatingAction, self).__init__()
@@ -106,6 +113,10 @@ class RepeatingAction(object):
             self.ticks -= 1
         return True
 
+    def __repr__(self):
+        return "RepeatingAction %d %d [%s]" % (self.init_ticks, self.ticks, self.action)
+
+
 class DurationAction(object):
     def __init__(self, seconds, start_action, end_action, tick_length_seconds):
         super(DurationAction, self).__init__()
@@ -119,6 +130,10 @@ class DurationAction(object):
 
         return self.end_timer()
 
+    def __repr__(self):
+        return "DurationAction [%s, %s]" % (self.start_action, self.end_timer)
+
+
 class RunAfterCondition(object):
     def __init__(self, cond, action):
         super(RunAfterCondition, self).__init__()
@@ -131,3 +146,6 @@ class RunAfterCondition(object):
             return False
         else:
             return True
+
+    def __repr__(self):
+        return "RunAfterCondition [%s, %s]" % (self.cond, self.action)
