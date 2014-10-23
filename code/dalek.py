@@ -249,7 +249,7 @@ class Head(EventQueue):
 
 class Voice(EventQueue):
     def __init__(self, sound_dir):
-        super(Voice, self).__init__()
+        super(Voice, self).__init__(True)
         self.sound_dir = sound_dir
         self.proc = None
         self.leds = Leds("C")
