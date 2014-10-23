@@ -1,6 +1,6 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
-from dalek_common import clamp_control_range, sign, EventQueue
+from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime
 from ev3.lego import LargeMotor, MediumMotor, TouchSensor
 import os.path
 import subprocess
@@ -25,6 +25,29 @@ class TwoWayControl(object):
         if sign(self.value) == sign(direction):
             self.off()
 
+class Leds(object):
+    def __init__(self, port):
+        super(Leds, self).__init__()
+        self.control_path = "/sys/bus/legoev3/devices/out%s:rcx-led/leds/ev3::out%s/brightness" % port
+        if not os.path.exists(self.control_path):
+            raise Exception("Cannot find LEDs on port %s" % port)
+        self.off()
+
+    def set_brightness(self, brightness):
+        brightness = int(brightness)
+        if brightness < 0:
+            brightness = 0
+        elif brightness > 100:
+            brightness = 100
+
+        with open(self.control_path, "w") as f:
+            f.write(str(brightness) + "\n")
+
+    def on(self):
+        self.set_brightness(100)
+
+    def off(self):
+        self.set_brightness(0)
 
 
 class Drive(EventQueue):
@@ -222,14 +245,17 @@ class Head(EventQueue):
         self.stop_action()()
 
 
-class Voice(object):
+class Voice(EventQueue):
     def __init__(self, sound_dir):
         super(Voice, self).__init__()
         self.sound_dir = sound_dir
         self.proc = None
+        self.leds = Leds("C")
 
     def stop(self):
         if self.proc:
+            self.leds.off()
+            self.clear()
             self.proc.kill()
             self.proc.wait()
             self.proc = None
@@ -239,12 +265,39 @@ class Voice(object):
             self.proc.wait()
             self.proc = None
 
+    def setup_lights_actions(self, sound):
+        path = os.path.join(self.sound_dir, sound + ".txt")
+        if os.path.exists(path):
+            def lights_on_action():
+                self.leds.on()
+
+            def lights_off_action():
+                self.leds.off()
+
+            l = []
+            with open(path) as f:
+                for line in f:
+                    l.append(float(line.strip()))
+
+            if len(l) % 2 == 0:
+                i = 0
+                while i < len(l):
+                    start = l[i]
+                    end = l[i + 1]
+                    self.add(DurationAction((end - start) / TICK_LENGTH_SECONDS,
+                                            lights_on_action,
+                                            lights_off_action,
+                                            TICK_LENGTH_SECONDS))
+                    i += 2
+
     def speak(self, sound):
         self.stop()
         path = os.path.join(self.sound_dir, sound + ".wav")
         if os.path.exists(path):
+            self.setup_lights_actions(sound)
             with open("/dev/null", "w") as devnull:
                 self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
+
 
     def is_speaking(self):
         if self.proc:
@@ -322,6 +375,7 @@ class ControllerThread(threading.Thread):
         while self.is_alive():
             self.parent.drive.process()
             self.parent.head.process()
+            self.parent.voice.process()
             self.parent.camera.process()
             time.sleep(TICK_LENGTH_SECONDS)
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Run this script on the Dalek to receive control messages from
 control_remote.py."""
 
