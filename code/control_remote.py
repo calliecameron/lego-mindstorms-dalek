@@ -241,18 +241,18 @@ class RandomModeAction(object):
 
     def __call__(self):
         self.snapshot_timer += 1
-        if self.snapshot_timer >= 60 * Main.FRAME_RATE:
+        if self.snapshot_timer >= 120 * Main.FRAME_RATE:
             self.parent.controller.snapshot()
             self.snapshot_timer = 0
 
         if self.timer <= 0:
             choice = random.randint(0, 99)
             length = 0
-            if choice < 20:
+            if choice < 25:
                 length = self.random_head_action()
-            elif choice < 40:
+            elif choice < 50:
                 length = self.random_drive_action(DRIVE)
-            elif choice < 60:
+            elif choice < 75:
                 length = self.random_drive_action(TURN)
             else:
                 length = self.random_speech()
