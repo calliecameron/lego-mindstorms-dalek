@@ -276,6 +276,14 @@ class Voice(EventQueue):
             def lights_off_action():
                 self.leds.off()
 
+            def flash(start, end):
+                def action():
+                    self.add(DurationAction(end - start,
+                                            lights_on_action,
+                                            lights_off_action,
+                                            TICK_LENGTH_SECONDS))
+                return action
+
             l = []
             with open(path) as f:
                 for line in f:
@@ -288,10 +296,7 @@ class Voice(EventQueue):
                     start = l[i]
                     end = l[i + 1]
                     self.add(RunAfterTime(start,
-                                          DurationAction(end - start,
-                                                         lights_on_action,
-                                                         lights_off_action,
-                                                         TICK_LENGTH_SECONDS),
+                                          flash(start, end),
                                           TICK_LENGTH_SECONDS))
                     i += 2
 
