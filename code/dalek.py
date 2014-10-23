@@ -44,11 +44,9 @@ class Leds(object):
             f.write(str(brightness) + "\n")
 
     def on(self):
-        print "on"
         self.set_brightness(100)
 
     def off(self):
-        print "off"
         self.set_brightness(0)
 
 
@@ -195,6 +193,7 @@ class Head(EventQueue):
             self.motor.ramp_up_sp = 0
             self.motor.ramp_down_sp = 0
 
+            time.sleep(1)
             self.parent.voice.exterminate()
             self.parent.voice.wait()
 
@@ -249,7 +248,7 @@ class Head(EventQueue):
 
 class Voice(EventQueue):
     def __init__(self, sound_dir):
-        super(Voice, self).__init__(True)
+        super(Voice, self).__init__()
         self.sound_dir = sound_dir
         self.proc = None
         self.leds = Leds("C")
@@ -288,7 +287,6 @@ class Voice(EventQueue):
             with open(path) as f:
                 for line in f:
                     l.append(float(line.strip()))
-            print "Sound flash: %s" % l
 
             if len(l) % 2 == 0:
                 i = 0

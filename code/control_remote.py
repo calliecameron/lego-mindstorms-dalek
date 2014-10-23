@@ -248,11 +248,11 @@ class RandomModeAction(object):
         if self.timer <= 0:
             choice = random.randint(0, 99)
             length = 0
-            if choice < 25:
+            if choice < 20:
                 length = self.random_head_action()
-            elif choice < 50:
+            elif choice < 40:
                 length = self.random_drive_action(DRIVE)
-            elif choice < 75:
+            elif choice < 60:
                 length = self.random_drive_action(TURN)
             else:
                 length = self.random_speech()
