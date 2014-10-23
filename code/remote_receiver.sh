@@ -2,8 +2,11 @@
 # Setup the LEDs ready for the main code to use
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MODE_FILE='/sys/bus/legoev3/devices/outC/mode'
 
-echo rcx-led | sudo tee /sys/bus/legoev3/devices/outC/mode &>/dev/null
+if [ "$(cat "${MODE_FILE}")" != 'rcx-led' ]; then
+    echo rcx-led | sudo tee /sys/bus/legoev3/devices/outC/mode &>/dev/null
+fi
 
 function cleanup()
 {
