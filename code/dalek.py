@@ -287,8 +287,8 @@ class Voice(EventQueue):
                 while i < len(l):
                     start = l[i]
                     end = l[i + 1]
-                    self.add(RunAfterTime(start / TICK_LENGTH_SECONDS,
-                                          DurationAction((end - start) / TICK_LENGTH_SECONDS,
+                    self.add(RunAfterTime(start,
+                                          DurationAction(end - start,
                                                          lights_on_action,
                                                          lights_off_action,
                                                          TICK_LENGTH_SECONDS),
@@ -393,9 +393,10 @@ class Dalek(object):
         self.head = Head(self)
         self.voice = Voice(sound_dir)
         self.camera = Camera()
-        self.head.calibrate(calibrate_head)
         self.thread = ControllerThread(self)
         self.thread.start()
+        self.head.calibrate(calibrate_head)
+
 
     def shutdown(self):
         self.drive.shutdown()
