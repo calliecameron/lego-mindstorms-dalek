@@ -44,9 +44,11 @@ class Leds(object):
             f.write(str(brightness) + "\n")
 
     def on(self):
+        print "on"
         self.set_brightness(100)
 
     def off(self):
+        print "off"
         self.set_brightness(0)
 
 
