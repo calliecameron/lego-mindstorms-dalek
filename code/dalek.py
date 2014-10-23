@@ -408,6 +408,7 @@ class Dalek(object):
         self.voice.stop()
         self.voice.speak("status-hibernation")
         self.voice.wait()
+        self.voice.wait_until_empty()
         self.voice.stop()
         self.thread.shutdown()
         self.thread.join()

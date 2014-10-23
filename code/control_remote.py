@@ -218,7 +218,7 @@ class RandomModeAction(object):
 
     def set_timer(self, min_time):
         min_time = int(min_time)
-        self.timer = random.randint((min_time + 3) * Main.FRAME_RATE, (min_time + 10) * Main.FRAME_RATE)
+        self.timer = random.randint((min_time + 3) * Main.FRAME_RATE, (min_time + 5) * Main.FRAME_RATE)
         print "Random timer: %f s (%d ticks)" % (self.timer / float(Main.FRAME_RATE), self.timer)
 
     def random_drive_action(self, cmd):
