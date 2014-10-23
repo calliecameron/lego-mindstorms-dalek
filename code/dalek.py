@@ -28,7 +28,7 @@ class TwoWayControl(object):
 class Leds(object):
     def __init__(self, port):
         super(Leds, self).__init__()
-        self.control_path = "/sys/bus/legoev3/devices/out%s:rcx-led/leds/ev3::out%s/brightness" % port
+        self.control_path = "/sys/bus/legoev3/devices/out%s:rcx-led/leds/ev3::out%s/brightness" % (port, port)
         if not os.path.exists(self.control_path):
             raise Exception("Cannot find LEDs on port %s" % port)
         self.off()
