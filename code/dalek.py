@@ -304,9 +304,10 @@ class Voice(EventQueue):
         self.stop()
         path = os.path.join(self.sound_dir, sound + ".wav")
         if os.path.exists(path):
-            self.setup_lights_actions(sound)
             with open("/dev/null", "w") as devnull:
                 self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
+            self.setup_lights_actions(sound)
+
 
 
     def is_speaking(self):
@@ -406,8 +407,9 @@ class Dalek(object):
     def shutdown(self):
         self.drive.shutdown()
         self.head.shutdown()
-        self.thread.shutdown()
-        self.thread.join()
         self.voice.stop()
         self.voice.speak("status-hibernation")
         self.voice.wait()
+        self.thread.shutdown()
+        self.thread.join()
+

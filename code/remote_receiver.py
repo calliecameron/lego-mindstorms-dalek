@@ -55,6 +55,8 @@ dalek = Dalek(args.soundDir, False)
 
 try:
     DalekReceiver(dalek)
+except Exception as e:
+    print e
 finally:
     dalek.shutdown()
     sys.exit(0)
