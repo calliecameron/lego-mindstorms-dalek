@@ -12,6 +12,8 @@ function cleanup()
     exit
 }
 
+trap "cleanup" SIGINT SIGHUP SIGTERM
+
 python "${DIR}/remote_receiver.py" "${HOME}/sounds" &
 REAL_PID="${!}"
 

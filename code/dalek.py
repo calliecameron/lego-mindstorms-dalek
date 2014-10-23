@@ -286,10 +286,12 @@ class Voice(EventQueue):
                 while i < len(l):
                     start = l[i]
                     end = l[i + 1]
-                    self.add(DurationAction((end - start) / TICK_LENGTH_SECONDS,
-                                            lights_on_action,
-                                            lights_off_action,
-                                            TICK_LENGTH_SECONDS))
+                    self.add(RunAfterTime(start / TICK_LENGTH_SECONDS,
+                                          DurationAction((end - start) / TICK_LENGTH_SECONDS,
+                                                         lights_on_action,
+                                                         lights_off_action,
+                                                         TICK_LENGTH_SECONDS),
+                                          TICK_LENGTH_SECONDS))
                     i += 2
 
     def speak(self, sound):
