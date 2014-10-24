@@ -40,7 +40,7 @@ SOUND_DICT = {pygame.K_1: "exterminate",
               pygame.K_LEFTBRACKET: "i-bring-you-the-human",
               pygame.K_RIGHTBRACKET: "your-loyalty-will-be-rewarded",
               pygame.K_MINUS: "you-will-be-necessary",
-              pygame.K_PLUS: "daleks-have-no-concept-of-worry",
+              pygame.K_EQUALS: "daleks-have-no-concept-of-worry",
               pygame.K_BACKQUOTE: "this-human-is-our-best-option",
               pygame.K_SEMICOLON: "can-i-be-of-assistance",
               pygame.K_QUOTE: "please-excuse-me",
@@ -82,7 +82,7 @@ class Main(object):
         super(Main, self).__init__()
         self.screen = pygame.display.set_mode((640, 480))
         self.background = pygame.image.load("background.png").convert()
-        self.font = pygame.font.Font(None, 40)
+        self.font = pygame.font.Font(None, 60)
         self.screen_text = ""
         self.controller = RemoteController(addr, snapshot_file)
         self.drive_queue = EventQueue()
@@ -210,8 +210,9 @@ class Main(object):
             if self.random_mode:
                 self.random_flash_timer += 1
 
-                if self.random_flash_timer >= 2 * Main.FRAME_RATE:
+                if self.random_flash_timer >= 1 * Main.FRAME_RATE:
                     self.random_show_text = not self.random_show_text
+                    self.random_flash_timer = 0
 
                 if self.random_show_text:
                     disp = self.font.render(self.screen_text, True, (255, 0, 0))
