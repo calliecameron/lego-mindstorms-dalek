@@ -18,34 +18,34 @@ import time
 SOUND_DICT = {pygame.K_1: "exterminate",
               pygame.K_2: "gun",
               pygame.K_3: "exterminate-exterminate-exterminate",
-              pygame.K_4: "identify-yourself",
-              pygame.K_5: "report",
-              pygame.K_6: "social-interaction-will-cease",
-              pygame.K_7: "why",
-              pygame.K_8: "you-would-make-a-good-dalek",
-              pygame.K_9: "doctor",
-              pygame.K_0: "the-doctor",
-              pygame.K_F1: "would-you-care-for-some-tea",
-              pygame.K_F2: "can-i-be-of-assistance",
-              pygame.K_F3: "please-excuse-me",
-              pygame.K_F4: "explain",
-              pygame.K_F5: "cease-talking",
-              pygame.K_F6: "that-is-incorrect",
-              pygame.K_F7: "you-will-follow",
-              pygame.K_F8: "daleks-are-supreme",
-              pygame.K_F9: "you-will-be-necessary",
-              pygame.K_F10: "you-will-identify",
-              pygame.K_F11: "it-is-the-doctor",
-              pygame.K_F12: "the-doctor-must-die",
-              pygame.K_p: "bring-him-to-me",
-              pygame.K_i: "i-bring-you-the-human",
-              pygame.K_u: "your-loyalty-will-be-rewarded",
-              pygame.K_y: "daleks-do-not-question-orders",
-              pygame.K_t: "which-of-you-is-least-important",
-              pygame.K_l: "this-human-is-our-best-option",
-              pygame.K_k: "i-have-duties-to-perform",
-              pygame.K_j: "daleks-have-no-concept-of-worry",
-              pygame.K_o: "then-hear-me-talk-now"}
+              pygame.K_4: "doctor",
+              pygame.K_5: "the-doctor",
+              pygame.K_6: "it-is-the-doctor",
+              pygame.K_7: "the-doctor-must-die",
+              pygame.K_8: "identify-yourself",
+              pygame.K_9: "report",
+              pygame.K_0: "explain",
+              pygame.K_F1: "cease-talking",
+              pygame.K_F2: "social-interaction-will-cease",
+              pygame.K_F3: "daleks-are-supreme",
+              pygame.K_F4: "you-would-make-a-good-dalek",
+              pygame.K_F5: "you-will-follow",
+              pygame.K_F6: "you-will-identify",
+              pygame.K_F7: "daleks-do-not-question-orders",
+              pygame.K_F8: "why",
+              pygame.K_F9: "that-is-incorrect",
+              pygame.K_F10: "bring-him-to-me",
+              pygame.K_F11: "which-of-you-is-least-important",
+              pygame.K_F12: "would-you-care-for-some-tea",
+              pygame.K_LEFTBRACKET: "i-bring-you-the-human",
+              pygame.K_RIGHTBRACKET: "your-loyalty-will-be-rewarded",
+              pygame.K_MINUS: "you-will-be-necessary",
+              pygame.K_PLUS: "daleks-have-no-concept-of-worry",
+              pygame.K_BACKQUOTE: "this-human-is-our-best-option",
+              pygame.K_SEMICOLON: "can-i-be-of-assistance",
+              pygame.K_QUOTE: "please-excuse-me",
+              pygame.K_HASH: "i-have-duties-to-perform",
+              pygame.K_p: "then-hear-me-talk-now"}
 
 RANDOM_SOUNDS = ["exterminate",
                  "gun",
@@ -80,7 +80,8 @@ class Main(object):
 
     def __init__(self, addr, snapshot_file):
         super(Main, self).__init__()
-        self.screen = pygame.display.set_mode((320, 240))
+        self.screen = pygame.display.set_mode((640, 480))
+        self.background = pygame.image.load("background.png").convert()
         self.font = pygame.font.Font(None, 40)
         self.screen_text = ""
         self.controller = RemoteController(addr, snapshot_file)
@@ -88,6 +89,8 @@ class Main(object):
         self.other_queue = EventQueue()
 
         self.random_mode = False
+        self.random_flash_timer = 0
+        self.random_show_text = False
 
         try:
             self.main_loop()
@@ -126,6 +129,9 @@ class Main(object):
             self.drive_queue.clear()
             self.other_queue.clear()
             self.drive_queue.add(RandomModeAction(self))
+            self.screen_text = "Random mode"
+            self.random_flash_timer = 0
+            self.random_show_text = True
 
     def maybe_stop_random_mode(self, manual):
         if self.random_mode and manual:
@@ -133,6 +139,8 @@ class Main(object):
             self.controller.stop()
             self.drive_queue.clear()
             self.other_queue.clear()
+            self.screen_text = ""
+            self.random_show_text = False
 
 
     def begin_drive_cmd(self, cmd, value, repeat, manual=True):
@@ -157,7 +165,6 @@ class Main(object):
                 if event.type == pygame.QUIT:
                     return
                 elif event.type == pygame.KEYDOWN:
-                    self.screen_text = "down: " + pygame.key.name(event.key)
                     if event.key == pygame.K_ESCAPE:
                         return
                     elif event.key == pygame.K_w:
@@ -181,7 +188,6 @@ class Main(object):
                     elif event.key in SOUND_DICT:
                         self.controller.play_sound(SOUND_DICT[event.key])
                 elif event.type == pygame.KEYUP:
-                    self.screen_text = "up: " + pygame.key.name(event.key)
                     if event.key == pygame.K_w:
                         self.release_drive_cmd(DRIVE, 1.0)
                     elif event.key == pygame.K_s:
@@ -199,11 +205,21 @@ class Main(object):
             self.other_queue.process()
 
             self.screen.fill((255, 255, 255))
-            disp = self.font.render(self.screen_text, True, (0, 0, 0))
-            rect = disp.get_rect()
-            rect.left = 100
-            rect.top = 100
-            self.screen.blit(disp, rect)
+            self.screen.blit(self.background, (0, 0))
+
+            if self.random_mode:
+                self.random_flash_timer += 1
+
+                if self.random_flash_timer >= 2 * Main.FRAME_RATE:
+                    self.random_show_text = not self.random_show_text
+
+                if self.random_show_text:
+                    disp = self.font.render(self.screen_text, True, (255, 0, 0))
+                    rect = disp.get_rect()
+                    rect.left = 270
+                    rect.top = 220
+                    self.screen.blit(disp, rect)
+
             pygame.display.flip()
             time.sleep(1/float(Main.FRAME_RATE))
 
