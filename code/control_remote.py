@@ -183,6 +183,8 @@ class Main(object):
                         self.controller.snapshot()
                     elif event.key == pygame.K_v:
                         self.controller.toggle_verbose()
+                    elif event.key == pygame.K_l:
+                        self.controller.toggle_lights()
                     elif event.key == pygame.K_SPACE:
                         self.start_random_mode()
                     elif event.key in SOUND_DICT:

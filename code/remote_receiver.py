@@ -51,6 +51,9 @@ class DalekReceiver(Receiver):
     def snapshot(self):
         self.d.camera.take_snapshot()
 
+    def toggle_lights(self):
+        self.d.voice.toggle_lights()
+
 dalek = Dalek(args.soundDir, False)
 
 try:

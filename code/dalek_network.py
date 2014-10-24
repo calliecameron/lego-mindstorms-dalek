@@ -20,6 +20,8 @@ STOP_SOUND = "stopsound"
 
 SNAPSHOT = "snapshot"
 
+TOGGLE_LIGHTS = "togglelights"
+
 
 def print_error(data):
     print "Network received bad message: '%s'" % str(data)
@@ -76,6 +78,9 @@ class Controller(threading.Thread):
 
     def snapshot(self):
         self.send(SNAPSHOT)
+
+    def toggle_lights(self):
+        self.send(TOGGLE_LIGHTS)
 
     def exit(self):
         self.send(EXIT)
@@ -178,6 +183,8 @@ class Receiver(object):
             self.stop_sound()
         elif cmd == SNAPSHOT:
             self.snapshot()
+        elif cmd == TOGGLE_LIGHTS:
+            self.toggle_lights()
         elif cmd == EXIT:
             self.alive = False
         else:
@@ -199,4 +206,7 @@ class Receiver(object):
         raise NotImplementedError
 
     def snapshot(self):
+        raise NotImplementedError
+
+    def toggle_lights(self):
         raise NotImplementedError

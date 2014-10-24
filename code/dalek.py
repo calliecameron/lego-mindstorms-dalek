@@ -33,6 +33,10 @@ class Leds(object):
             raise Exception("Cannot find LEDs on port %s" % port)
         self.off()
 
+    def get_brightness(self):
+        with open(self.control_path) as f:
+            return int(f.read().strip())
+
     def set_brightness(self, brightness):
         brightness = int(brightness)
         if brightness < 0:
@@ -48,6 +52,12 @@ class Leds(object):
 
     def off(self):
         self.set_brightness(0)
+
+    def toggle(self):
+        if self.get_brightness() > 0:
+            self.off()
+        else:
+            self.on()
 
 
 class Drive(EventQueue):
@@ -260,6 +270,9 @@ class Voice(EventQueue):
             self.proc.kill()
             self.proc.wait()
             self.proc = None
+
+    def toggle_lights(self):
+        self.leds.toggle()
 
     def wait(self):
         if self.proc:
