@@ -5,7 +5,9 @@ Lego Mindstorms Dalek
 
 Uses the Mindstorms EV3 brick running [ev3dev](http://www.ev3dev.org/) and [python-ev3](https://github.com/topikachu/python-ev3). Still a work in progress!
 
-<iframe width="420" height="315" src="//www.youtube.com/embed/Li0pRmRHNx0" frameborder="0" allowfullscreen></iframe>
+See it in action:
+
+[![Lego Mindstorms Dalek](http://img.youtube.com/vi/Li0pRmRHNx0/0.jpg)](http://www.youtube.com/watch?v=Li0pRmRHNx0)
 
 ![Dalek with normal eye-stalk](dalek1.jpg)
 
