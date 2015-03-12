@@ -1,7 +1,7 @@
 Lego Mindstorms Dalek
 =====================
 
-[Building instructions](building-instructions/README.md) and [code](code/README.md) for a Lego Mindstorms Dalek.
+[Building instructions](building-instructions/README.md) and [code](code/README.md) for a Lego Mindstorms [Dalek](https://en.wikipedia.org/wiki/Dalek), from [Doctor Who](https://en.wikipedia.org/wiki/Doctor_Who).
 
 Uses the Mindstorms EV3 brick running [ev3dev](http://www.ev3dev.org/) and [python-ev3](https://github.com/topikachu/python-ev3). Still a work in progress!
 
