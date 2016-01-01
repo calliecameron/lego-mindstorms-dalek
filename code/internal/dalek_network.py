@@ -164,8 +164,9 @@ class Receiver(object):
             self.listen_sock.close()
 
     def send(self, *msg):
-        data = ":".join(map(str, msg))
-        self.sock.send(data + "\n")
+        if self.sock:
+            data = ":".join(map(str, msg))
+            self.sock.send(data + "\n")
 
     def send_snapshot(self, data):
         self.send(SNAPSHOT, base64.b64encode(data))

@@ -1,6 +1,6 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
-from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime
+from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
 from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply
 import os.path
 import subprocess
@@ -361,12 +361,15 @@ class Battery(EventQueue):
         self.battery_handler = None
         def handle():
             if self.battery_handler:
-                self.battery_handler(str(self.power_supply.measured_volts))
+                self.battery_handler("%.2f" % self.power_supply.measured_volts)
         self.add(RepeatingAction(10, handle, TICK_LENGTH_SECONDS))
         print "Created battery"
 
     def register_handler(self, h):
         self.battery_handler = h
+
+    def shutdown(self):
+        self.clear()
 
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
@@ -415,6 +418,7 @@ class Dalek(object):
     def shutdown(self):
         self.drive.shutdown()
         self.head.shutdown()
+        self.battery.shutdown()
         self.voice.stop()
         self.voice.speak("status-hibernation")
         self.voice.wait()

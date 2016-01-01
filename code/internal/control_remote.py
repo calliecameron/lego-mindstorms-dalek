@@ -61,9 +61,10 @@ RANDOM_SOUNDS = ["exterminate",
 
 
 class RemoteController(Controller):
-    def __init__(self, addr, snapshot_file):
+    def __init__(self, addr, snapshot_file, battery_action):
         super(RemoteController, self).__init__(addr)
         self.snapshot_file = snapshot_file
+        self.battery_action = battery_action
 
     def snapshot_received(self, data):
         PIL.Image.open(io.BytesIO(data)).rotate(90).save(self.snapshot_file, "JPEG")
@@ -71,7 +72,7 @@ class RemoteController(Controller):
             subprocess.call(["xdg-open", self.snapshot_file], stdout=f, stderr=f)
 
     def battery_received(self, data):
-        print "Battery %s" % data
+        self.battery_action(data)
 
 class Main(object):
 
@@ -85,7 +86,13 @@ class Main(object):
         self.background = pygame.image.load("background.png").convert()
         self.font = pygame.font.Font(None, 60)
         self.screen_text = ""
-        self.controller = RemoteController(addr, snapshot_file)
+
+        self.battery_font = pygame.font.Font(None, 20)
+        self.battery_text = ""
+        def battery_handler(data):
+            self.battery_text = data
+
+        self.controller = RemoteController(addr, snapshot_file, battery_handler)
         self.drive_queue = EventQueue()
         self.other_queue = EventQueue()
 
@@ -223,6 +230,13 @@ class Main(object):
                     rect.left = 270
                     rect.top = 220
                     self.screen.blit(disp, rect)
+
+            if self.battery_text:
+                disp = self.battery_font.render(self.battery_text, True, (0, 0, 0))
+                rect = disp.get_rect()
+                rect.left = 580
+                rect.top = 9
+                self.screen.blit(disp, rect)
 
             pygame.display.flip()
             time.sleep(1/float(Main.FRAME_RATE))
