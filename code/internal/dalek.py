@@ -1,7 +1,7 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
 from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime
-from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor
+from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply
 import os.path
 import subprocess
 import tempfile
@@ -161,7 +161,7 @@ class Drive(EventQueue):
 class Head(EventQueue):
 
     HEAD_LIMIT = 135
-    HEAD_SPEED = 200
+    HEAD_SPEED = 300
 
     def __init__(self, parent):
         super(Head, self).__init__()
@@ -354,6 +354,20 @@ class Camera(EventQueue):
         else:
             return False
 
+class Battery(EventQueue):
+    def __init__(self):
+        super(Battery, self).__init__()
+        self.power_supply = PowerSupply()
+        self.battery_handler = None
+        def handle():
+            if self.battery_handler:
+                self.battery_handler(str(self.power_supply.measured_volts))
+        self.add(RepeatingAction(10, handle, TICK_LENGTH_SECONDS))
+        print "Created battery"
+
+    def register_handler(self, h):
+        self.battery_handler = h
+
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
         super(ControllerThread, self).__init__()
@@ -380,6 +394,7 @@ class ControllerThread(threading.Thread):
             self.parent.head.process()
             self.parent.voice.process()
             self.parent.camera.process()
+            self.parent.battery.process()
             time.sleep(TICK_LENGTH_SECONDS)
 
 class Dalek(object):
@@ -391,11 +406,11 @@ class Dalek(object):
         self.head = Head(self)
         self.voice = Voice(sound_dir)
         self.camera = Camera()
+        self.battery = Battery()
         self.thread = ControllerThread(self)
         self.thread.start()
         self.head.calibrate()
         print "Ready"
-
 
     def shutdown(self):
         self.drive.shutdown()

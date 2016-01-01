@@ -21,6 +21,10 @@ class DalekReceiver(Receiver):
             self.send_snapshot(data)
         self.d.camera.register_handler(snapshot_handler)
 
+        def battery_handler(data):
+            self.send_battery(data)
+        self.d.battery.register_handler(battery_handler)
+
         self.start()
 
     def begin_cmd(self, cmd, value):

@@ -22,6 +22,8 @@ SNAPSHOT = "snapshot"
 
 TOGGLE_LIGHTS = "togglelights"
 
+BATTERY = "battery"
+
 
 def print_error(data):
     print "Network received bad message: '%s'" % str(data)
@@ -112,10 +114,17 @@ class Controller(threading.Thread):
                 self.snapshot_received(base64.b64decode(args[0]))
             else:
                 print_error([cmd] + args)
+        elif cmd == BATTERY:
+            if len(args) >= 1:
+                self.battery_received(args[0])
+            else:
+                print_error([cmd] + args)
 
     def snapshot_received(self, data):
         raise NotImplementedError
 
+    def battery_received(self, data):
+        raise NotImplementedError
 
 class Receiver(object):
     def __init__(self):
@@ -160,6 +169,9 @@ class Receiver(object):
 
     def send_snapshot(self, data):
         self.send(SNAPSHOT, base64.b64encode(data))
+
+    def send_battery(self, data):
+        self.send(BATTERY, data)
 
     def handle_recv(self, cmd, args):
         if cmd == BEGIN:

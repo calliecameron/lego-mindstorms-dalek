@@ -70,6 +70,8 @@ class RemoteController(Controller):
         with open("/dev/null", "w") as f:
             subprocess.call(["xdg-open", self.snapshot_file], stdout=f, stderr=f)
 
+    def battery_received(self, data):
+        print "Battery %s" % data
 
 class Main(object):
 

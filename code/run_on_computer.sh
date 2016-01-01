@@ -12,5 +12,5 @@ function usage() {
 
 test -z "${1}" && usage
 
-cd "${DIR}/internal"
-exec python control_remote.py "${1}" "${DIR}/last-photo.jpg"
+cd "${THIS_DIR}/internal"
+exec python "${THIS_DIR}/internal/control_remote.py" "${1}" "${THIS_DIR}/last-photo.jpg"
