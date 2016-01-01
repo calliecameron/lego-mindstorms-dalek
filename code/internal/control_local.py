@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Use this script to control the Dalek from a shell on the Dalek
 itself (i.e. through an SSH session). Controls are different from (and
 less intuitive than) the pygame-based remote controller."""
@@ -51,16 +50,6 @@ try:
             d.drive.turn(-0.5)
         elif cmd == "s" or cmd == "S":
             d.drive.stop()
-        # elif cmd == "q":
-        #     d.head.rotate(-45)
-        # elif cmd == "e":
-        #     d.head.rotate(45)
-        # elif cmd == "z":
-        #     d.head.rotate_to(0)
-        # elif cmd == "r":
-        #     d.exterminate()
-        # elif cmd == "f":
-        #     d.fire()
         elif cmd == "p":
             break
 

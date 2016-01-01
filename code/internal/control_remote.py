@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Use this script to control the Dalek remotely. This is the script
 you run on the controlling machine; run remote_receiver.py on the
 Dalek itself."""

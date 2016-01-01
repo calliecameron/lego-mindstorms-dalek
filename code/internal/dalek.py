@@ -1,7 +1,7 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
 from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime
-from ev3.lego import LargeMotor, MediumMotor, TouchSensor
+from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor
 import os.path
 import subprocess
 import tempfile
@@ -28,7 +28,13 @@ class TwoWayControl(object):
 class Leds(object):
     def __init__(self, port):
         super(Leds, self).__init__()
-        self.control_path = "/sys/bus/legoev3/devices/out%s:rcx-led/leds/ev3::out%s/brightness" % (port, port)
+
+        port_map = {"A": "4", "B": "5", "C": "6", "D": "7"}
+        mode_path = "/sys/devices/platform/legoev3-ports/lego-port/port%s/mode" % port_map[port]
+        with open(mode_path, "w") as f:
+            f.write("led\n")
+
+        self.control_path = "/sys/bus/lego/devices/out%s:rcx-led/leds/out%s::ev3dev/brightness" % (port, port)
         if not os.path.exists(self.control_path):
             raise Exception("Cannot find LEDs on port %s" % port)
         self.off()
@@ -71,8 +77,8 @@ class Drive(EventQueue):
         def init_wheel(port):
             wheel = LargeMotor(port)
             wheel.reset()
-            wheel.regulation_mode = "on"
-            wheel.stop_mode = "coast"
+            wheel.speed_regulation_enabled = "on"
+            wheel.stop_command = "coast"
             return wheel
 
         self.left_wheel = init_wheel("D")
@@ -84,11 +90,11 @@ class Drive(EventQueue):
 
     def update_wheel_speeds(self):
         def set_wheel_speed(wheel, speed):
-            wheel.pulses_per_second_sp = speed
+            wheel.speed_sp = speed
             if speed == 0:
                 wheel.stop()
             else:
-                wheel.start()
+                wheel.run_forever()
 
         drive_part = Drive.DRIVE_SPEED * self.drive_control.value
         turn_part = Drive.TURN_SPEED * self.turn_control.value
@@ -119,7 +125,7 @@ class Drive(EventQueue):
         return action
 
     def pre_process(self):
-        if self.touch_sensor.is_pushed:
+        if self.touch_sensor.value() == 1:
             self.shutdown()
         self.ticks_since_last += 1
 
@@ -158,48 +164,16 @@ class Head(EventQueue):
         self.motor = MediumMotor("B")
         self.control = TwoWayControl()
 
-    def calibrate(self, calibrate_position):
-        def wait_for_stop():
-            time.sleep(2)
-            while self.motor.pulses_per_second != 0:
-                time.sleep(0.1)
-
+    def calibrate(self):
         try:
             self.parent.voice.speak("commence-awakening")
             self.parent.voice.wait()
 
             self.motor.reset()
 
-            if calibrate_position:
-                self.motor.regulation_mode = "off"
-                self.motor.stop_mode = "coast"
-
-                self.motor.duty_cycle_sp = 65
-                self.motor.start()
-                wait_for_stop()
-                self.motor.stop()
-                pos1 = self.motor.position
-
-                self.motor.duty_cycle_sp = -65
-                self.motor.start()
-                wait_for_stop()
-                self.motor.stop()
-                pos2 = self.motor.position
-
-                midpoint = (pos1 + pos2) / 2.0
-
-                self.motor.regulation_mode = "on"
-                self.motor.stop_mode = "hold"
-                self.motor.ramp_up_sp = 500
-                self.motor.ramp_down_sp = 200
-                self.motor.run_position_limited(midpoint, 400)
-                wait_for_stop()
-                self.motor.stop()
-
-            self.motor.regulation_mode = "on"
+            self.motor.speed_regulation_enabled = "on"
             self.motor.position = 0
-            self.motor.stop_mode = "brake"
-            self.motor.run_mode = "forever"
+            self.motor.stop_command = "brake"
             self.motor.ramp_up_sp = 0
             self.motor.ramp_down_sp = 0
 
@@ -213,11 +187,11 @@ class Head(EventQueue):
 
     def update_motor_speed(self):
         speed = self.control.value * Head.HEAD_SPEED
-        self.motor.pulses_per_second_sp = speed
+        self.motor.speed_sp = speed
         if speed == 0:
             self.motor.stop()
         else:
-            self.motor.start()
+            self.motor.run_forever()
 
     def stop_action(self):
         def action():
@@ -319,8 +293,6 @@ class Voice(EventQueue):
                 self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
             self.setup_lights_actions(sound)
 
-
-
     def is_speaking(self):
         if self.proc:
             if self.proc.poll() is not None:
@@ -404,7 +376,7 @@ class ControllerThread(threading.Thread):
 class Dalek(object):
     """Main Dalek controller"""
 
-    def __init__(self, sound_dir, calibrate_head=True):
+    def __init__(self, sound_dir):
         super(Dalek, self).__init__()
         self.drive = Drive()
         self.head = Head(self)
@@ -412,7 +384,7 @@ class Dalek(object):
         self.camera = Camera()
         self.thread = ControllerThread(self)
         self.thread.start()
-        self.head.calibrate(calibrate_head)
+        self.head.calibrate()
 
 
     def shutdown(self):

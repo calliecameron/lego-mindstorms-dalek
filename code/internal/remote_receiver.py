@@ -54,7 +54,7 @@ class DalekReceiver(Receiver):
     def toggle_lights(self):
         self.d.voice.toggle_lights()
 
-dalek = Dalek(args.soundDir, False)
+dalek = Dalek(args.soundDir)
 
 try:
     DalekReceiver(dalek)
