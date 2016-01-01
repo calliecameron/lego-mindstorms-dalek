@@ -12,4 +12,4 @@ else
 fi
 
 cd "${THIS_DIR}/internal"
-exec python "${DIR}/remote_receiver.py" "${SOUNDS_DIR}"
+exec python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}"

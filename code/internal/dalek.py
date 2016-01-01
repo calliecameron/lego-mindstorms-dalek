@@ -34,10 +34,14 @@ class Leds(object):
         with open(mode_path, "w") as f:
             f.write("led\n")
 
+        # Give the system time to set up the changes
+        time.sleep(1)
+
         self.control_path = "/sys/bus/lego/devices/out%s:rcx-led/leds/out%s::ev3dev/brightness" % (port, port)
         if not os.path.exists(self.control_path):
             raise Exception("Cannot find LEDs on port %s" % port)
         self.off()
+        print "Created LEDs"
 
     def get_brightness(self):
         with open(self.control_path) as f:
@@ -83,10 +87,11 @@ class Drive(EventQueue):
 
         self.left_wheel = init_wheel("D")
         self.right_wheel = init_wheel("A")
-        self.touch_sensor = TouchSensor(2)
+        self.touch_sensor = TouchSensor("2")
         self.drive_control = TwoWayControl()
         self.turn_control = TwoWayControl()
         self.ticks_since_last = 0
+        print "Created drive"
 
     def update_wheel_speeds(self):
         def set_wheel_speed(wheel, speed):
@@ -163,6 +168,7 @@ class Head(EventQueue):
         self.parent = parent
         self.motor = MediumMotor("B")
         self.control = TwoWayControl()
+        print "Created head"
 
     def calibrate(self):
         try:
@@ -236,6 +242,7 @@ class Voice(EventQueue):
         self.sound_dir = sound_dir
         self.proc = None
         self.leds = Leds("C")
+        print "Created voice"
 
     def stop(self):
         if self.proc:
@@ -316,6 +323,7 @@ class Camera(EventQueue):
         self.snapshot_handler = None
         self.output_file = tempfile.mktemp(suffix=".jpeg")
         self.proc = None
+        print "Created camera"
 
     def register_handler(self, h):
         self.snapshot_handler = h
@@ -353,6 +361,7 @@ class ControllerThread(threading.Thread):
         self.daemon = True
         self.alive = True
         self.lock = threading.Lock()
+        print "Created controller thread"
 
     def is_alive(self):
         self.lock.acquire()
