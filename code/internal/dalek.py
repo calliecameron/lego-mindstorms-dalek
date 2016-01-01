@@ -394,6 +394,7 @@ class Dalek(object):
         self.thread = ControllerThread(self)
         self.thread.start()
         self.head.calibrate()
+        print "Ready"
 
 
     def shutdown(self):
