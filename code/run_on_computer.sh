@@ -4,14 +4,23 @@
 # must already be running on the Dalek.
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LAST_IP_FILE="${THIS_DIR}/last-ip-address.txt"
+
+if [ -e "${LAST_IP_FILE}" ]; then
+    LAST_IP_ADDR="$(cat "${LAST_IP_FILE}")"
+else
+    LAST_IP_ADDR=''
+fi
 
 if [ ! -z "${1}" ]; then
     ADDR="${1}"
 else
-    ADDR="$(zenity --entry --title=Dalek "--text=Enter the Dalek's IP address:" "--window-icon=${THIS_DIR}/internal/dalek.ico")"
+    ADDR="$(zenity --entry --title=Dalek "--entry-text=${LAST_IP_ADDR}" "--text=Enter the Dalek's IP address:" "--window-icon=${THIS_DIR}/internal/dalek.ico")"
     if [ -z "${ADDR}" ]; then
         zenity --error --title=Dalek "--text=No address entered; quitting." "--window-icon=${THIS_DIR}/internal/dalek.ico"
         exit 1
+    else
+        echo "${ADDR}" > "${LAST_IP_FILE}"
     fi
 fi
 
