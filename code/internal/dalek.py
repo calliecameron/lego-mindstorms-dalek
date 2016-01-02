@@ -160,7 +160,7 @@ class Drive(EventQueue):
 
 class Head(EventQueue):
 
-    HEAD_LIMIT = 135
+    HEAD_LIMIT = 320
     HEAD_SPEED = 300
 
     def __init__(self, parent):
