@@ -1,6 +1,7 @@
 import base64
 import socket
 import threading
+import sys
 
 DALEK_PORT = 12345
 
@@ -51,7 +52,11 @@ class Controller(threading.Thread):
         self.verbose = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self.sock.connect((addr, DALEK_PORT))
+        try:
+            self.sock.connect((addr, DALEK_PORT))
+        except socket.error:
+            print "Cannot connect to the Dalek - is the address correct?"
+            sys.exit(1)
         self.start()
 
     def toggle_verbose(self):
