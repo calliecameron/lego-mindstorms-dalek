@@ -164,6 +164,9 @@ class Main(object):
         self.other_queue.add(self.release_cmd_action(cmd, value))
 
     def main_loop(self):
+        # Take a snapshot to start things off
+        self.controller.snapshot()
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
