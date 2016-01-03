@@ -2,4 +2,4 @@
 # Run this script once on the Dalek itself; it installs all the necessary
 # software.
 
-sudo apt-get install streamer
+sudo apt-get -y install streamer

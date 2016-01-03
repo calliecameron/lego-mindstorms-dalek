@@ -1,4 +1,4 @@
 Dalek Building Instructions
 ===========================
 
-TODO
+TODO: finish the instructions!
