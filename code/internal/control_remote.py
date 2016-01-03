@@ -97,7 +97,7 @@ class Main(object):
         def snapshot_handler(data):
             image = PIL.Image.open(io.BytesIO(data)).rotate(90)
             image.save(snapshot_file, "JPEG")
-            image = image.resize((int(image.size[0] * (480.0/image.size[1])), 480))
+            image = image.resize((360, int(image.size[1] * (360.0/image.size[0]))))
             self.snapshot = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
 
         self.controller = RemoteController(addr, snapshot_handler, battery_handler)
@@ -226,7 +226,7 @@ class Main(object):
             self.screen.blit(self.background, (360, 0))
 
             if self.snapshot:
-                self.screen.blit(self.snapshot, ((360 - self.snapshot.get_width())/2, 0))
+                self.screen.blit(self.snapshot, (0, (480 - self.snapshot.get_height())/2))
             self.screen.blit(self.overlay, (0, 0))
 
             if self.random_mode:
