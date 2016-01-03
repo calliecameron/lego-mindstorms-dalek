@@ -46,9 +46,11 @@ class Buffer(object):
             return None
 
 
-class Controller(threading.Thread):
-    def __init__(self, addr):
-        super(Controller, self).__init__()
+class RemoteController(threading.Thread):
+    def __init__(self, addr, snapshot_handler, battery_handler):
+        super(RemoteController, self).__init__()
+        self.snapshot_handler = snapshot_handler
+        self.battery_handler = battery_handler
         self.verbose = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -116,20 +118,14 @@ class Controller(threading.Thread):
     def handle_recv(self, cmd, args):
         if cmd == SNAPSHOT:
             if len(args) >= 1:
-                self.snapshot_received(base64.b64decode(args[0]))
+                self.snapshot_handler(base64.b64decode(args[0]))
             else:
                 print_error([cmd] + args)
         elif cmd == BATTERY:
             if len(args) >= 1:
-                self.battery_received(args[0])
+                self.battery_handler(args[0])
             else:
                 print_error([cmd] + args)
-
-    def snapshot_received(self, data):
-        raise NotImplementedError
-
-    def battery_received(self, data):
-        raise NotImplementedError
 
 class Receiver(object):
     def __init__(self):

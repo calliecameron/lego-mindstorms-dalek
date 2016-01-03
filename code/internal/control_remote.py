@@ -5,7 +5,7 @@ Dalek itself."""
 
 import argparse
 from dalek_common import EventQueue, RepeatingAction, DurationAction
-from dalek_network import Controller, DRIVE, TURN, HEAD_TURN
+from dalek_network import RemoteController, DRIVE, TURN, HEAD_TURN
 import io
 import PIL.Image
 import pygame
@@ -59,18 +59,6 @@ RANDOM_SOUNDS = ["exterminate",
                  "you-will-identify",
                  "the-doctor-must-die"]
 
-
-class RemoteController(Controller):
-    def __init__(self, addr, snapshot_action, battery_action):
-        super(RemoteController, self).__init__(addr)
-        self.snapshot_action = snapshot_action
-        self.battery_action = battery_action
-
-    def snapshot_received(self, data):
-        self.snapshot_action(data)
-
-    def battery_received(self, data):
-        self.battery_action(data)
 
 class Main(object):
 
