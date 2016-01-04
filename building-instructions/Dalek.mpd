@@ -1,0 +1,83 @@
+0 FILE Dalek.ldr
+0 Dalek
+0 Name: Dalek.ldr
+0 Author: Callum Cameron
+0 Unofficial Model
+0 ROTATION CENTER 0 0 0 1 "Custom" 
+0 ROTATION CONFIG 0 0
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 3005.dat
+0
+0 FILE DalekPlungerArm.ldr
+0 Dalek - Plunger Arm
+0 Name: DalekPlungerArm.ldr
+0 Author: Callum Cameron
+0 Unofficial Model
+0 
+0
+0 FILE DalekSkirtFront.ldr
+0 Dalek - Skirt Front
+0 Name: DalekSkirtFront.ldr
+0 Author: Callum Cameron
+0 Unofficial Model
+0 
+0 ROTATION CENTER 0 0 0 1 "Custom" 
+0 ROTATION CONFIG 0 0
+1 71 10 0 0 -1 0 0 0 1 0 0 0 -1 60478.dat
+0 STEP
+1 71 30 -8 0 -1 0 0 0 1 0 0 0 -1 3710.dat
+0 STEP
+1 71 70 -16 0 -1 0 0 0 1 0 0 0 -1 60479.dat
+0 STEP
+1 71 190 -8 0 -1 0 0 0 1 0 0 0 -1 60479.dat
+0 STEP
+1 71 310 -16 0 -1 0 0 0 1 0 0 0 -1 60479.dat
+0 STEP
+1 71 430 -8 0 -1 0 0 0 1 0 0 0 -1 3666.dat
+0 STEP
+1 71 460 -16 0 -1 0 0 0 1 0 0 0 -1 3623.dat
+0
+0 FILE DalekSkirtLeft1.ldr
+0 Dalek - Skirt Left 1
+0 Name: DalekSkirtLeft1.ldr
+0 Author: Callum Cameron
+0 Unofficial Model
+0 ROTATION CENTER 0 0 0 1 "Custom" 
+0 ROTATION CONFIG 0 0
+0 ROTSTEP -157 135 0 ABS
+1 71 10 0 -10 1 0 0 0 1 0 0 0 1 47397.dat
+0 STEP
+1 71 -80 0 -10 0 0 1 0 1 0 -1 0 0 3028.dat
+0 STEP
+1 71 -40 8 100 -1 0 0 0 1 0 0 0 -1 3666.dat
+1 71 -130 8 50 0 0 1 0 1 0 -1 0 0 3666.dat
+1 71 -60 8 -10 0 0 1 0 1 0 -1 0 0 3022.dat
+1 71 -30 0 -150 -1 0 0 0 1 0 0 0 -1 3021.dat
+0 STEP
+1 71 -30 0 -290 1 0 0 0 1 0 0 0 1 47397.dat
+0 STEP
+1 71 -100 0 -250 0 0 1 0 1 0 -1 0 0 3029.dat
+1 71 -10 8 -130 1 0 0 0 1 0 0 0 1 47397.dat
+0 STEP
+1 71 -120 8 -130 0 0 -1 0 1 0 1 0 0 2445.dat
+1 71 -60 8 -150 0 0 -1 0 1 0 1 0 0 2445.dat
+1 71 -100 0 -390 1 0 0 0 1 0 0 0 1 3020.dat
+0 STEP
+1 71 -60 16 -20 0 0 1 0 1 0 -1 0 0 3021.dat
+1 71 -70 8 -310 1 0 0 0 1 0 0 0 1 3021.dat
+1 71 -80 8 -370 1 0 0 0 1 0 0 0 1 3020.dat
+0 STEP
+1 71 -130 8 -310 0 0 1 0 1 0 -1 0 0 3666.dat
+1 14 -60 24 -10 0 0 -1 0 1 0 1 0 0 2444.dat
+1 14 -80 16 -310 0 0 1 0 1 0 -1 0 0 2444.dat
+0 STEP
+1 0 -80 26 -330 0 0 1 0 1 0 -1 0 0 4459.dat
+1 0 -60 34 10 0 0 1 0 1 0 -1 0 0 4459.dat
+0 STEP
+1 0 -60 24 20 -1 0 0 0 1 0 0 0 -1 2607.dat
+1 0 -80 36 -340 -1 0 0 0 -1 0 0 0 1 2607.dat
+1 0 -80 27 -367 -1 0 0 0 0 1 0 1 0 2959c01.dat
+1 0 -60 33 47 -1 0 0 0 0 1 0 1 0 2959c01.dat
+0 ROTSTEP END
+1 0 -190 -8 40 -1 0 0 0 1 0 0 0 -1 60474.dat
+0
+0
