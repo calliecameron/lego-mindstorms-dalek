@@ -1,12 +1,28 @@
 """Main logic for the Dalek. Use one of the other scripts to actually control it."""
 
-from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
-from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply
+import os
 import os.path
 import subprocess
 import tempfile
 import time
 import threading
+
+# To test the code on a machine that isn't a Dalek, set the environment variable
+# FAKE_DALEK. This is mainly intended for developing network code when the actual
+# ev3 isn't to hand.
+if os.getenv("FAKE_DALEK"):
+    FAKE_DALEK = True
+else:
+    FAKE_DALEK = False
+
+from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
+
+if FAKE_DALEK:
+    from fake_ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply, Leds
+else:
+    from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply
+    from ev3extra import Leds
+
 
 TICK_LENGTH_SECONDS = 0.1
 
@@ -24,50 +40,6 @@ class TwoWayControl(object):
     def release(self, direction):
         if sign(self.value) == sign(direction):
             self.off()
-
-class Leds(object):
-    def __init__(self, port):
-        super(Leds, self).__init__()
-
-        port_map = {"A": "4", "B": "5", "C": "6", "D": "7"}
-        mode_path = "/sys/devices/platform/legoev3-ports/lego-port/port%s/mode" % port_map[port]
-        with open(mode_path, "w") as f:
-            f.write("led\n")
-
-        # Give the system time to set up the changes
-        time.sleep(1)
-
-        self.control_path = "/sys/bus/lego/devices/out%s:rcx-led/leds/out%s::ev3dev/brightness" % (port, port)
-        if not os.path.exists(self.control_path):
-            raise Exception("Cannot find LEDs on port %s" % port)
-        self.off()
-        print "Created LEDs"
-
-    def get_brightness(self):
-        with open(self.control_path) as f:
-            return int(f.read().strip())
-
-    def set_brightness(self, brightness):
-        brightness = int(brightness)
-        if brightness < 0:
-            brightness = 0
-        elif brightness > 100:
-            brightness = 100
-
-        with open(self.control_path, "w") as f:
-            f.write(str(brightness) + "\n")
-
-    def on(self):
-        self.set_brightness(100)
-
-    def off(self):
-        self.set_brightness(0)
-
-    def toggle(self):
-        if self.get_brightness() > 0:
-            self.off()
-        else:
-            self.on()
 
 
 class Drive(EventQueue):
