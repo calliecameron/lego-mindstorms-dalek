@@ -11,5 +11,23 @@ else
     SOUNDS_DIR="${HOME}/sounds"
 fi
 
+WEBSOCKET=''
+HTTP=''
+
+function cleanup() {
+    test ! -z "${WEBSOCKET}" && kill "${WEBSOCKET}" &>/dev/null
+    test ! -z "${HTTP}" && kill "${HTTP}" &>/dev/null
+    wait
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+cd "${THIS_DIR}/html"
+python -m SimpleHTTPServer 12345 &
+HTTP="${!}"
 cd "${THIS_DIR}/internal"
-exec python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}"
+python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}" &
+WEBSOCKET="${!}"
+wait "${WEBSOCKET}"
+cleanup
