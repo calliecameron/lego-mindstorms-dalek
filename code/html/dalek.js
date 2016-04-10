@@ -1,14 +1,29 @@
 $(document).ready(function() {
-    var ws = new WebSocket("ws://" + window.location.hostname + ":12346");
+    var READY = "ready";
+    var BUSY = "busy";
+    var EXIT = "exit";
+    var BEGIN = "begin";
+    var RELEASE = "release";
+    var DRIVE = "drive";
+    var TURN = "turn";
+    var STOP = "stop";
+    var HEAD_TURN = "headturn";
+    var PLAY_SOUND = "playsound";
+    var STOP_SOUND = "stopsound";
+    var SNAPSHOT = "snapshot";
+    var TOGGLE_LIGHTS = "togglelights";
+    var BATTERY = "battery";
 
-    $("#foobar").click(function() {
-        console.log("SEND");
-        ws.send("playsound:exterminate");
-    })
+    // var ws = new WebSocket("ws://" + window.location.hostname + ":12346");
 
-    ws.onmessage = function(event) {
-        console.log(event);
-    }
+    // $("#foobar").click(function() {
+    //     console.log("SEND");
+    //     ws.send("playsound:exterminate");
+    // })
+
+    // ws.onmessage = function(event) {
+    //     console.log(event);
+    // }
 
     // """Use this script to control the Dalek remotely. This is the script
 // you run on the controlling machine; run remote_receiver.py on the
@@ -346,86 +361,82 @@ $(document).ready(function() {
 //             return None
 
 
-// class RemoteController(threading.Thread):
-//     def __init__(self, addr, snapshot_handler, battery_handler):
-//         super(RemoteController, self).__init__()
-//         self.snapshot_handler = snapshot_handler
-//         self.battery_handler = battery_handler
-//         self.verbose = False
-//         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-//         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-//         try:
-//             self.sock.connect((addr, DALEK_PORT))
-//         except socket.error:
-//             print "Cannot connect to the Dalek - is the address correct?"
-//             sys.exit(1)
-//         self.start()
+    function Socket(readyHandler, busyHandler, snapshotHandler, batteryHandler) {
+        var verbose = false;
+        var socket = new WebSocket("ws://" + window.location.hostname + ":12346");
 
-//     def toggle_verbose(self):
-//         self.verbose = not self.verbose
+        function send() {
+            var data = Array.prototype.join.call(arguments, ":");
+            if (verbose) {
+                console.log("Network sending: '%s'", data);
+            }
+            socket.send(data + "\n");
+        }
 
-//     def send(self, *msg):
-//         data = ":".join(map(str, msg))
-//         if self.verbose:
-//             print "Network sending: '%s'" % data
-//         self.sock.send(data + "\n")
+        socket.onmessage = function(data) {
+            var msg = data.data.trim().split(":")
 
-//     def begin_cmd(self, cmd, value):
-//         self.send(BEGIN, cmd, value)
+            function printError(args) {
+                console.log("Network: bad message '%s'", args);
+            }
 
-//     def release_cmd(self, cmd, value):
-//         self.send(RELEASE, cmd, value)
+            if (verbose) {
+                console.log("Network received: '%s'", msg);
+            }
 
-//     def stop(self):
-//         self.send(STOP)
+            if (msg.length > 0) {
+                var cmd = msg[0];
+                var args = msg.slice(1);
 
-//     def play_sound(self, sound):
-//         self.send(PLAY_SOUND, sound)
+                //////////////////////
+                // TODO Finish convertng from python...
+                if (cmd == SNAPSHOT) {
+                    if (args.length >= 1) {
+                        snapshotHandler(base64.b64decode(args[0]));
+                    } else {
+                        printError([cmd] + args);
+                    }
+                } else if (cmd == BATTERY) {
+                    if (args.length >= 1) {
+                        batteryHandler(args[0]);
+                    } else {
+                        printError([cmd] + args);
+                    }
+                }
+            } else {
+                printError(msg);
+            }
+        };
 
-//     def stop_sound(self):
-//         self.send(STOP_SOUND)
-
-//     def snapshot(self):
-//         self.send(SNAPSHOT)
-
-//     def toggle_lights(self):
-//         self.send(TOGGLE_LIGHTS)
-
-//     def exit(self):
-//         self.send(EXIT)
-//         self.sock.close()
-
-//     def run(self):
-//         buf = Buffer()
-//         while True:
-//             data = self.sock.recv(4096)
-//             if not data:
-//                 break
-
-//             buf.add(data)
-
-//             line = buf.get()
-//             while line:
-//                 msg = line.strip().split(":")
-//                 if self.verbose:
-//                     print "Network received: '%s'" % str(msg)
-//                 if len(msg) >= 1:
-//                     self.handle_recv(msg[0], msg[1:])
-//                 else:
-//                     print_error(msg)
-//                 line = buf.get()
-
-//     def handle_recv(self, cmd, args):
-//         if cmd == SNAPSHOT:
-//             if len(args) >= 1:
-//                 self.snapshot_handler(base64.b64decode(args[0]))
-//             else:
-//                 print_error([cmd] + args)
-//         elif cmd == BATTERY:
-//             if len(args) >= 1:
-//                 self.battery_handler(args[0])
-//             else:
-//                 print_error([cmd] + args)
-
-
+        return {
+            toggleVerbose: function() {
+                verbose = !verbose;
+            },
+            beginCmd: function(cmd, value) {
+                send(BEGIN, cmd, value);
+            },
+            releaseCmd: function(cmd, value) {
+                send(RELEASE, cmd, value);
+            },
+            stop: function() {
+                send(STOP);
+            },
+            playSound: function(sound) {
+                send(PLAY_SOUND, sound);
+            },
+            stopSound: function() {
+                send(STOP_SOUND);
+            },
+            snapshot: function() {
+                send(SNAPSHOT);
+            },
+            toggleLights: function() {
+                send(TOGGLE_LIGHTS);
+            },
+            exit: function() {
+                send(EXIT);
+                socket.close();
+            }
+        };
+    }
 });
