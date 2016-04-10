@@ -9,6 +9,9 @@ from dalek import Dalek
 
 DALEK_PORT = 12346
 
+READY = "ready"
+BUSY = "busy"
+
 EXIT = "exit"
 
 BEGIN = "begin"
@@ -40,32 +43,63 @@ parser.add_argument("soundDir", help="Directory containing sound files")
 args = parser.parse_args()
 
 
+dalek = Dalek(args.soundDir)
+connected = False
+
 class Receiver(WebSocket):
     def handleConnected(self):
-        self.d = Dalek(args.soundDir)
+        global connected
+        try:
+            if not connected:
+                connected = True
+                self.connected = True
 
-        def snapshot_handler(data):
-            self.send_snapshot(data)
-        self.d.camera.register_handler(snapshot_handler)
+                def snapshot_handler(data):
+                    self.send_snapshot(data)
+                dalek.camera.register_handler(snapshot_handler)
 
-        def battery_handler(data):
-            self.send_battery(data)
-        self.d.battery.register_handler(battery_handler)
+                def battery_handler(data):
+                    self.send_battery(data)
+                dalek.battery.register_handler(battery_handler)
+
+                self.send_ready()
+            else:
+                self.connected = False
+                self.send_busy()
+        except Exception as e:
+            print e
 
     def handleClose(self):
-        print "Network: shutting down"
-        self.d.shutdown()
+        global connected
+        try:
+            if self.connected:
+                self.stop()
+                dalek.camera.clear_handler()
+                dalek.battery.clear_handler()
+                connected = False
+        except Exception as e:
+            print e
 
     def handleMessage(self):
-        msg = map(str, self.data.strip().split(":"))
-        print "Network received: '%s'" % str(msg)
-        if len(msg) >= 1:
-            self.handle_recv(msg[0], msg[1:])
-        else:
-            print_error(msg)
+        try:
+            if self.connected:
+                msg = map(str, self.data.strip().split(":"))
+                print "Network received: '%s'" % str(msg)
+                if len(msg) >= 1:
+                    self.handle_recv(msg[0], msg[1:])
+                else:
+                    print_error(msg)
+        except Exception as e:
+            print e
 
     def send(self, *msg):
         self.sendMessage(u":".join(map(unicode, msg)))
+
+    def send_ready(self):
+        self.send(READY, dalek.battery.get_battery_status())
+
+    def send_busy(self):
+        self.send(BUSY)
 
     def send_snapshot(self, data):
         self.send(SNAPSHOT, base64.b64encode(data))
@@ -98,41 +132,43 @@ class Receiver(WebSocket):
         elif cmd == TOGGLE_LIGHTS:
             self.toggle_lights()
         elif cmd == EXIT:
-            self.alive = False
+            print "Network: shutting down"
+            # dalek.shutdown()
+            ###############################################
         else:
             print_error([cmd] + args)
 
     def begin_cmd(self, cmd, value):
         if cmd == DRIVE:
-            self.d.drive.drive(value)
+            dalek.drive.drive(value)
         elif cmd == TURN:
-            self.d.drive.turn(value)
+            dalek.drive.turn(value)
         elif cmd == HEAD_TURN:
-            self.d.head.turn(value)
+            dalek.head.turn(value)
 
     def release_cmd(self, cmd, value):
         if cmd == DRIVE:
-            self.d.drive.drive_release(value)
+            dalek.drive.drive_release(value)
         elif cmd == TURN:
-            self.d.drive.turn_release(value)
+            dalek.drive.turn_release(value)
         elif cmd == HEAD_TURN:
-            self.d.head.turn_release(value)
+            dalek.head.turn_release(value)
 
     def stop(self):
-        self.d.drive.stop()
+        dalek.drive.stop()
 
     def play_sound(self, sound):
-        self.d.voice.speak(sound)
+        dalek.voice.speak(sound)
 
     def stop_sound(self):
-        self.d.voice.stop()
+        dalek.voice.stop()
 
     def snapshot(self):
-        self.d.camera.take_snapshot()
+        dalek.camera.take_snapshot()
 
     def toggle_lights(self):
-        self.d.voice.toggle_lights()
+        dalek.voice.toggle_lights()
 
-server = SimpleWebSocketServer("", 12346, Receiver)
-print "Starting"
+server = SimpleWebSocketServer("", DALEK_PORT, Receiver)
+print "Network: starting"
 server.serveforever()

@@ -5,4 +5,8 @@ $(document).ready(function() {
         console.log("SEND");
         ws.send("playsound:exterminate");
     })
+
+    ws.onmessage = function(event) {
+        console.log(event);
+    }
 });

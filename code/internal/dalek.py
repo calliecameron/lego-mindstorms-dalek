@@ -300,6 +300,9 @@ class Camera(EventQueue):
     def register_handler(self, h):
         self.snapshot_handler = h
 
+    def clear_handler(self):
+        self.snapshot_handler = None
+
     def take_snapshot(self):
         def action():
             with open("/dev/null", "w") as devnull:
@@ -333,12 +336,18 @@ class Battery(EventQueue):
         self.battery_handler = None
         def handle():
             if self.battery_handler:
-                self.battery_handler("%.2f" % self.power_supply.measured_volts)
+                self.battery_handler(self.get_battery_status())
         self.add(RepeatingAction(10, handle, TICK_LENGTH_SECONDS))
         print "Created battery"
 
+    def get_battery_status(self):
+        return "%.2f" % self.power_supply.measured_volts
+
     def register_handler(self, h):
         self.battery_handler = h
+
+    def clear_handler(self):
+        self.battery_handler = None
 
     def shutdown(self):
         self.clear()
