@@ -1,6 +1,5 @@
 """Run this script on the Dalek."""
 
-import base64
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 import argparse
 import sys
@@ -95,6 +94,9 @@ class Receiver(WebSocket):
     def send(self, *msg):
         self.sendMessage(u":".join(map(unicode, msg)))
 
+    def send_binary(self, data):
+        self.sendMessage(bytearray(data))
+
     def send_ready(self):
         self.send(READY, dalek.battery.get_battery_status())
 
@@ -102,7 +104,7 @@ class Receiver(WebSocket):
         self.send(BUSY)
 
     def send_snapshot(self, data):
-        self.send(SNAPSHOT, base64.b64encode(data))
+        self.send_binary(data)
 
     def send_battery(self, data):
         self.send(BATTERY, data)
@@ -133,7 +135,7 @@ class Receiver(WebSocket):
             self.toggle_lights()
         elif cmd == EXIT:
             print "Network: shutting down"
-            # dalek.shutdown()
+            # TODO dalek.shutdown()
             ###############################################
         else:
             print_error([cmd] + args)

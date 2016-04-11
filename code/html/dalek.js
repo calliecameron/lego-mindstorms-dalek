@@ -14,20 +14,27 @@ $(document).ready(function() {
     var TOGGLE_LIGHTS = "togglelights";
     var BATTERY = "battery";
 
-    // var ws = new WebSocket("ws://" + window.location.hostname + ":12346");
+    var socket = Socket(
+        function() {
+            console.log("READY");
+        },
+        function() {
+            console.log("BUSY");
+        },
+        function() {
+            console.log("DISCONNECTED");
+        },
+        function(data) {
+            console.log("Got snapshot");
+        },
+        function() {
+            console.log("Got battery");
+        }
+    );
 
-    // $("#foobar").click(function() {
-    //     console.log("SEND");
-    //     ws.send("playsound:exterminate");
-    // })
-
-    // ws.onmessage = function(event) {
-    //     console.log(event);
-    // }
-
-    // """Use this script to control the Dalek remotely. This is the script
-// you run on the controlling machine; run remote_receiver.py on the
-// Dalek itself."""
+    $("#foobar").click(function() {
+        socket.snapshot();
+    });
 
 
 // import argparse
@@ -341,72 +348,105 @@ $(document).ready(function() {
 
 
 
-// import socket
-// import threading
-// import sys
 
-// class Buffer(object):
-//     def __init__(self):
-//         self.data = ""
+    function Socket(readyHandler, busyHandler, disconnectedHandler, snapshotHandler, batteryHandler) {
+        var STATE_DISCONNECTED = 0;
+        var STATE_READY = 1;
+        var STATE_BUSY = 2;
 
-//     def add(self, data):
-//         self.data = self.data + str(data)
-
-//     def get(self):
-//         lines = self.data.split("\n")
-//         if len(lines) > 1:
-//             self.data = "\n".join(lines[1:])
-//             return lines[0]
-//         else:
-//             return None
-
-
-    function Socket(readyHandler, busyHandler, snapshotHandler, batteryHandler) {
         var verbose = false;
-        var socket = new WebSocket("ws://" + window.location.hostname + ":12346");
+        var state = STATE_DISCONNECTED;
+        var socket = null;
 
-        function send() {
-            var data = Array.prototype.join.call(arguments, ":");
+        function log(arg) {
             if (verbose) {
-                console.log("Network sending: '%s'", data);
+                console.log(arg);
             }
-            socket.send(data + "\n");
         }
 
-        socket.onmessage = function(data) {
-            var msg = data.data.trim().split(":")
+        function logError(args) {
+            console.log("Network: bad message '%s'", args);
+        }
 
-            function printError(args) {
-                console.log("Network: bad message '%s'", args);
-            }
+        function onmessage(event) {
+            log(event);
+            if (typeof event.data === "string") {
+                var msg = event.data.trim().split(":");
+                log(msg);
 
-            if (verbose) {
-                console.log("Network received: '%s'", msg);
-            }
+                if (msg.length > 0) {
+                    var cmd = msg[0];
+                    var args = msg.slice(1);
 
-            if (msg.length > 0) {
-                var cmd = msg[0];
-                var args = msg.slice(1);
-
-                //////////////////////
-                // TODO Finish convertng from python...
-                if (cmd == SNAPSHOT) {
-                    if (args.length >= 1) {
-                        snapshotHandler(base64.b64decode(args[0]));
-                    } else {
-                        printError([cmd] + args);
-                    }
-                } else if (cmd == BATTERY) {
-                    if (args.length >= 1) {
+                    if (cmd === READY && state !== STATE_READY && args.length > 0) {
+                        state = STATE_READY;
+                        readyHandler();
+                        batteryHandler(args[0]);
+                    } else if (cmd === BUSY) {
+                        if (state != STATE_BUSY) {
+                            busyHandler();
+                        }
+                        state = STATE_BUSY;
+                        socket.close();
+                    } else if (cmd === BATTERY && state === STATE_READY && args.length > 0) {
                         batteryHandler(args[0]);
                     } else {
-                        printError([cmd] + args);
+                        logError(msg);
                     }
+                } else {
+                    logError(event.data);
                 }
+            } else if (typeof event.data === "object" && event.data instanceof Blob) {
+                snapshotHandler(event.data);
             } else {
-                printError(msg);
+                logError(event.data);
             }
-        };
+        }
+
+        function onclose(event) {
+            log(event);
+            if (state === STATE_READY) {
+                disconnectedHandler();
+                state = STATE_DISCONNECTED;
+            }
+            if (socket !== null) {
+                socket = null;
+                window.setTimeout(connectionAttempt, 5000);
+            }
+        }
+
+        function onerror(event) {
+            log(event);
+            if (state !== STATE_DISCONNECTED) {
+                disconnectedHandler();
+                state = STATE_DISCONNECTED;
+            }
+            if (socket !== null) {
+                socket = null;
+                window.setTimeout(connectionAttempt, 5000);
+            }
+        }
+
+        function connectionAttempt() {
+            if (state === STATE_DISCONNECTED || state === STATE_BUSY) {
+                socket = new WebSocket("ws://" + window.location.hostname + ":12346");
+                socket.onmessage = onmessage;
+                socket.onclose = onclose;
+                socket.onerror = onerror;
+            }
+        }
+
+        function send() {
+            if (state === STATE_READY) {
+                var data = Array.prototype.join.call(arguments, ":");
+                if (verbose) {
+                    console.log("Network sending: '%s'", data);
+                }
+                socket.send(data + "\n");
+            }
+        }
+
+        connectionAttempt();
 
         return {
             toggleVerbose: function() {
@@ -434,6 +474,7 @@ $(document).ready(function() {
                 send(TOGGLE_LIGHTS);
             },
             exit: function() {
+                /////////////////////////////// TODO
                 send(EXIT);
                 socket.close();
             }
