@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dalek</title>
 
-    <!-- <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css"> -->
+    <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
     <!-- <link type="text/css" rel="stylesheet" href="https://code.jquery.com/ui/1.11.3/themes/cupertino/jquery-ui.css"> -->
     <link type="text/css" rel="stylesheet" href="dalek.css">
 
@@ -32,11 +32,68 @@
     <meta name="theme-color" content="#ffffff">
   </head>
   <body>
-    <button id="foobar">Exterminate</button>
+    <nav class="navbar navbar-default" style="border-radius: 0px;">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Dalek</a>
+        </div>
+        <div class="collapse navbar-collapse" id="navbar">
+          <ul id="mode-selector" class="nav navbar-nav">
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a id="btn-about" href="#">About</a></li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container -->
+    </nav>
 
-    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <div class="container">
+      <div class="row">
+
+        <div class="col-xs-4">
+
+          <div class="panel panel-primary">
+            <p>foo</p>
+          </div>
+
+        </div>
+
+        <div class="col-xs-4">
+
+          <div class="panel panel-primary">
+            <p>bar</p>
+          </div>
+
+        </div>
+
+        <div class="col-xs-4">
+
+          <div class="panel panel-primary">
+            <p>baz</p>
+          </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="score-box" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-body">
+            <p><span id="disconnect-message"></span>; we'll keep trying to connect.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-1.12.3.min.js"></script>
     <!-- <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script> -->
-    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script> -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="dalek.js"></script>
   </body>
 </html>

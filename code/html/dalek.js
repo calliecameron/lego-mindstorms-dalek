@@ -37,17 +37,6 @@ $(document).ready(function() {
     });
 
 
-// import argparse
-// from dalek_common import EventQueue, RepeatingAction, DurationAction
-// from dalek_network import RemoteController, DRIVE, TURN, HEAD_TURN
-// import io
-// import PIL.Image
-// import pygame
-// import random
-// import subprocess
-// import sys
-// import time
-
 // SOUND_DICT = {pygame.K_1: "exterminate",
 //               pygame.K_2: "gun",
 //               pygame.K_3: "exterminate-exterminate-exterminate",
