@@ -8,6 +8,7 @@ from dalek import Dalek
 
 DALEK_PORT = 12346
 
+# BUSY means that someone else is already connected to the Dalek
 READY = "ready"
 BUSY = "busy"
 

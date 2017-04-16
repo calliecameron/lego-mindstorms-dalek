@@ -14,26 +14,36 @@ $(document).ready(function() {
     var TOGGLE_LIGHTS = "togglelights";
     var BATTERY = "battery";
 
+    var disconnected_box = DisconnectedBox();
+
     var socket = Socket(
         function() {
-            console.log("READY");
+            disconnected_box.hide();
         },
         function() {
-            console.log("BUSY");
+            disconnected_box.show("Someone else is already connected to the Dalek. We'll keep trying to connect...");
         },
         function() {
-            console.log("DISCONNECTED");
+            disconnected_box.show("Lost connection to the Dalek. We'll keep trying to reconnect...");
         },
         function(data) {
             console.log("Got snapshot");
         },
-        function() {
-            console.log("Got battery");
+        function(battery) {
+            $("#battery").text(battery);
         }
     );
 
-    $("#foobar").click(function() {
-        socket.snapshot();
+    var keyboard = Keyboard({
+        87: CommandKey(DRIVE, 1.0), // W
+        83: CommandKey(DRIVE, -1.0), // S
+        65: CommandKey(TURN, -1.0), // A
+        68: CommandKey(TURN, 1.0), // D
+        81: CommandKey(HEAD_TURN, -1.0), // Q
+        69: CommandKey(HEAD_TURN, 1.0), // E
+        86: OneOffKey(function() { socket.toggleVerbose(); }), // V
+        76: OneOffKey(function() { socket.toggleLights(); }), // L
+        13: OneOffKey(function() { socket.snapshot(); }), // Return
     });
 
 
@@ -466,6 +476,91 @@ $(document).ready(function() {
                 /////////////////////////////// TODO
                 send(EXIT);
                 socket.close();
+            }
+        };
+    }
+
+    function KeyHandler(down, up, repeat) {
+        var pressed = false;
+        var press_time = 0;
+        var REPEAT_TIME_MSEC = 5000;
+
+        function timeSince(time) {
+            return new Date().getTime() - time;
+        }
+
+        function shouldRepeat() {
+            // To avoid spamming, we repeat a keypress only every few seconds
+            return (repeat &&
+                    timeSince(press_time) > REPEAT_TIME_MSEC);
+        }
+
+        return {
+            down: function() {
+                if (!pressed || shouldRepeat()) {
+                    if (down) {
+                        down();
+                    }
+                    press_time = new Date().getTime();
+                }
+                pressed = true;
+            },
+            up: function() {
+                if (up) {
+                    up();
+                }
+                pressed = false;
+            }
+        }
+    }
+
+    function CommandKey(command, value) {
+        return KeyHandler(
+            function() {
+                socket.beginCmd(command, value);
+            },
+            function() {
+                socket.releaseCmd(command, value);
+            },
+            true
+        );
+    }
+
+    function OneOffKey(down) {
+        return KeyHandler(down, null, false);
+    }
+
+    function Keyboard(handlers) {
+        $(document).keydown(function(event) {
+            if (event.which in handlers) {
+                handlers[event.which].down();
+            }
+        });
+
+        $(document).keyup(function(event) {
+            if (event.which in handlers) {
+                handlers[event.which].up();
+            }
+        });
+    }
+
+    function DisconnectedBox() {
+        var modal = $("#disconnected-dialog");
+        var message_text = $("#disconnected-message");
+
+        modal.modal({
+            backdrop: "static",
+            keyboard: false,
+            show: true
+        });
+
+        return {
+            show: function(message) {
+                message_text.text(message);
+                modal.modal("show");
+            },
+            hide: function() {
+                modal.modal("hide");
             }
         };
     }
