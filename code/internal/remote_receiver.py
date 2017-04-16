@@ -39,11 +39,12 @@ def print_error(data):
 
 parser = argparse.ArgumentParser(description="Run this on the Dalek so it can be controlled remotely.")
 parser.add_argument("soundDir", help="Directory containing sound files")
+parser.add_argument("textToSpeech", help="Text to speech command")
 
 args = parser.parse_args()
 
 
-dalek = Dalek(args.soundDir)
+dalek = Dalek(args.soundDir, args.textToSpeech)
 connected = False
 
 class Receiver(WebSocket):

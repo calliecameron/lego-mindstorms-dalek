@@ -209,9 +209,10 @@ class Head(EventQueue):
 
 
 class Voice(EventQueue):
-    def __init__(self, sound_dir):
+    def __init__(self, sound_dir, text_to_speech_command):
         super(Voice, self).__init__()
         self.sound_dir = sound_dir
+        self.text_to_speech_command = text_to_speech_command
         self.proc = None
         self.leds = Leds("C")
         print "Created voice"
@@ -279,7 +280,7 @@ class Voice(EventQueue):
                 self.setup_lights_actions(filename)
             else:
                 self.proc = subprocess.Popen(
-                    ["espeak", "-a", "200", "-s", "120", espeakify(text)],
+                    [self.text_to_speech_command, espeakify(text)],
                     stdout=devnull, stderr=devnull)
 
     def is_speaking(self):
@@ -394,11 +395,11 @@ class ControllerThread(threading.Thread):
 class Dalek(object):
     """Main Dalek controller"""
 
-    def __init__(self, sound_dir):
+    def __init__(self, sound_dir, text_to_speech_command):
         super(Dalek, self).__init__()
         self.drive = Drive()
         self.head = Head(self)
-        self.voice = Voice(sound_dir)
+        self.voice = Voice(sound_dir, text_to_speech_command)
         self.camera = Camera()
         self.battery = Battery()
         self.thread = ControllerThread(self)

@@ -27,7 +27,7 @@ cd "${THIS_DIR}/html"
 python -m SimpleHTTPServer 12345 &
 HTTP="${!}"
 cd "${THIS_DIR}/internal"
-python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}" &
+python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}" "${THIS_DIR}/internal/text_to_speech.sh" &
 WEBSOCKET="${!}"
 wait "${WEBSOCKET}"
 cleanup
