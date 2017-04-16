@@ -66,8 +66,7 @@
 
         <div class="col-xs-4">
 
-          <div class="panel panel-primary">
-            <p>bar</p>
+          <div class="panel panel-primary" id="foobar">
           </div>
 
         </div>
@@ -76,6 +75,9 @@
 
           <div class="panel panel-primary">
             <p>baz</p>
+            <button id="button-foobar">Exit</button>
+            <input type="text" id="speak-text">
+            <button id="button-speak">Speak</button>
           </div>
       </div>
     </div>
@@ -86,6 +88,7 @@
         <div class="modal-content">
           <div class="modal-body">
             <p class="text-center"><span id="disconnected-message">Connecting...</span></p>
+            <div style="display:block" id="spinner-div"></div>
           </div>
         </div>
       </div>
@@ -97,6 +100,7 @@
     <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="nipplejs.js"></script>
+    <script src="spin.js"></script>
     <script src="dalek.js"></script>
   </body>
 </html>

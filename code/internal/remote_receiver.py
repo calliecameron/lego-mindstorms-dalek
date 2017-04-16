@@ -136,8 +136,8 @@ class Receiver(WebSocket):
             self.toggle_lights()
         elif cmd == EXIT:
             print "Network: shutting down"
-            # TODO dalek.shutdown()
-            ###############################################
+            dalek.shutdown()
+            sys.exit(0)
         else:
             print_error([cmd] + args)
 

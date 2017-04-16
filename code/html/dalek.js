@@ -21,10 +21,10 @@ $(document).ready(function() {
             disconnected_box.hide();
         },
         function() {
-            disconnected_box.show("Someone else is already connected to the Dalek. We'll keep trying to connect...");
+            disconnected_box.show("Someone else is already connected to the Dalek. Trying to connect...");
         },
         function() {
-            disconnected_box.show("Lost connection to the Dalek. We'll keep trying to reconnect...");
+            disconnected_box.show("Lost connection to the Dalek. Trying to reconnect...");
         },
         function(data) {
             console.log("Got snapshot");
@@ -49,6 +49,13 @@ $(document).ready(function() {
     var drive_control = DriveControl();
     var head_control = HeadControl();
 
+    $("#button-foobar").click(function() {
+        socket.exit();
+    })
+
+    $("#button-speak").click(function() {
+        socket.playSound($("#speak-text").val());
+    })
 // SOUND_DICT = {pygame.K_1: "exterminate",
 //               pygame.K_2: "gun",
 //               pygame.K_3: "exterminate-exterminate-exterminate",
@@ -475,7 +482,6 @@ $(document).ready(function() {
                 send(TOGGLE_LIGHTS);
             },
             exit: function() {
-                /////////////////////////////// TODO
                 send(EXIT);
                 socket.close();
             }
@@ -545,6 +551,7 @@ $(document).ready(function() {
     function DisconnectedBox() {
         var modal = $("#disconnected-dialog");
         var message_text = $("#disconnected-message");
+        var spinner = new Spinner({color:'#0000ff', lines: 12});
 
         modal.modal({
             backdrop: "static",
@@ -552,13 +559,19 @@ $(document).ready(function() {
             show: true
         });
 
+        function show(message) {
+            message_text.text(message);
+            spinner.spin($("#spinner-div")[0]);
+            modal.modal("show");
+        }
+
+        show("Connecting...");
+
         return {
-            show: function(message) {
-                message_text.text(message);
-                modal.modal("show");
-            },
+            show: show,
             hide: function() {
                 modal.modal("hide");
+                spinner.stop();
             }
         };
     }
@@ -569,9 +582,9 @@ $(document).ready(function() {
         var last_sent = 0;
 
         var joystick_manager = nipplejs.create({
-            // zone: $("#drive-joystick"),
+            zone: $("#foobar")[0],
             color: "#00ffff",
-            position: { top: "600px", left: "300px" },
+            position: { top: "300px", left: "300px" },
             size: 2 * RADIUS,
             mode: "static"
         });
@@ -630,5 +643,4 @@ $(document).ready(function() {
     function timeSince(time) {
         return new Date().getTime() - time;
     }
-
 });

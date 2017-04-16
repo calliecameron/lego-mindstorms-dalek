@@ -15,7 +15,7 @@ if os.getenv("FAKE_DALEK"):
 else:
     FAKE_DALEK = False
 
-from dalek_common import clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
+from dalek_common import sound_filename, espeakify, clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
 
 if FAKE_DALEK:
     from fake_ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply, Leds
@@ -264,13 +264,23 @@ class Voice(EventQueue):
                                           TICK_LENGTH_SECONDS))
                     i += 2
 
-    def speak(self, sound):
+    def speak(self, text):
         self.stop()
-        path = os.path.join(self.sound_dir, sound + ".wav")
-        if os.path.exists(path):
-            with open("/dev/null", "w") as devnull:
-                self.proc = subprocess.Popen(["aplay", path], stdout=devnull, stderr=devnull)
-            self.setup_lights_actions(sound)
+
+        # We first look for a sound file with the given name, otherwise
+        # we pass the text to espeak
+        filename = sound_filename(text)
+        path = os.path.join(self.sound_dir, filename + ".wav")
+
+        with open("/dev/null", "w") as devnull:
+            if os.path.exists(path):
+                self.proc = subprocess.Popen(
+                    ["aplay", path], stdout=devnull, stderr=devnull)
+                self.setup_lights_actions(filename)
+            else:
+                self.proc = subprocess.Popen(
+                    ["espeak", "-a", "200", "-s", "120", espeakify(text)],
+                    stdout=devnull, stderr=devnull)
 
     def is_speaking(self):
         if self.proc:

@@ -1,4 +1,18 @@
 import threading
+import re
+
+
+def espeakify(text):
+    # Espeak can't pronounce 'Dalek', so force it to say 'Dahlek'
+    dalek = re.compile(re.escape("Dalek"), re.IGNORECASE)
+    return dalek.sub("Dahlek", text)
+
+
+def sound_filename(text):
+    text = text.lower().replace(" ", "-")
+    return ''.join(
+        [c if re.match("^[a-z0-9-]$", c) else "" for c in text])
+
 
 def clamp_control_range(value):
     value = float(value)
@@ -8,6 +22,7 @@ def clamp_control_range(value):
         return 1.0
     else:
         return value
+
 
 def sign(x):
     x = float(x)
@@ -80,6 +95,7 @@ class EventQueue(object):
     def post_process(self):
         pass
 
+
 class RunAfterTime(object):
     def __init__(self, seconds, action, tick_length_seconds):
         super(RunAfterTime, self).__init__()
@@ -114,7 +130,8 @@ class RepeatingAction(object):
         return True
 
     def __repr__(self):
-        return "RepeatingAction %d %d [%s]" % (self.init_ticks, self.ticks, self.action)
+        return "RepeatingAction %d %d [%s]" % (
+            self.init_ticks, self.ticks, self.action)
 
 
 class DurationAction(object):
