@@ -46,6 +46,8 @@ $(document).ready(function() {
         13: OneOffKey(function() { socket.snapshot(); }), // Return
     });
 
+    var drive_control = DriveControl();
+    var head_control = HeadControl();
 
 // SOUND_DICT = {pygame.K_1: "exterminate",
 //               pygame.K_2: "gun",
@@ -485,10 +487,6 @@ $(document).ready(function() {
         var press_time = 0;
         var REPEAT_TIME_MSEC = 5000;
 
-        function timeSince(time) {
-            return new Date().getTime() - time;
-        }
-
         function shouldRepeat() {
             // To avoid spamming, we repeat a keypress only every few seconds
             return (repeat &&
@@ -564,4 +562,73 @@ $(document).ready(function() {
             }
         };
     }
+
+    function DriveControl() {
+        var RADIUS = 200;
+        var RATE_LIMIT = 500;
+        var last_sent = 0;
+
+        var joystick_manager = nipplejs.create({
+            // zone: $("#drive-joystick"),
+            color: "#00ffff",
+            position: { top: "600px", left: "300px" },
+            size: 2 * RADIUS,
+            mode: "static"
+        });
+
+        var last_x = 0;
+        var last_y = 0;
+
+        joystick_manager.on("move", function(evt, data) {
+            if (timeSince(last_sent) > RATE_LIMIT) {
+                var angle = data.angle.radian;
+                var distance = data.distance;
+                var x = distance * Math.cos(angle) / RADIUS;
+                var y = distance * Math.sin(angle) / RADIUS;
+
+                if (Math.abs(y) > 0.1) {
+                    socket.beginCmd(DRIVE, y);
+                    last_y = y;
+                }
+
+                if (Math.abs(x) > 0.1) {
+                    socket.beginCmd(TURN, x);
+                    last_x = x;
+                }
+
+                last_sent = new Date().getTime();
+            }
+        });
+
+        joystick_manager.on("end", function() {
+            socket.stop();
+        });
+    }
+
+    function HeadControl() {
+        var slider = $("#head-slider");
+
+        slider.slider({
+            orientation: "horizontal",
+            min: -1,
+            max: 1,
+            value: 0,
+            step: 0.01,
+            slide: function(event, ui) {
+                socket.beginCmd(HEAD_TURN, slider.slider("value"));
+            },
+            change: function(event, ui) {
+                socket.beginCmd(HEAD_TURN, slider.slider("value"));
+            },
+            stop: function(event, ui) {
+                slider.slider("value", 0);
+                socket.stop();
+            }
+        });
+    }
+
+    function timeSince(time) {
+        return new Date().getTime() - time;
+    }
+
 });
