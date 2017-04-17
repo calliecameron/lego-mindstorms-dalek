@@ -1,2 +1,4 @@
 *~
 *.pyc
+.dir-locals.el
+.env

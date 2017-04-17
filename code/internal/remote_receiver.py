@@ -2,6 +2,8 @@
 
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 import argparse
+import base64
+import json
 import sys
 from dalek import Dalek
 
@@ -37,7 +39,8 @@ def print_error(data):
     print "Network received bad message: '%s'" % str(data)
 
 
-parser = argparse.ArgumentParser(description="Run this on the Dalek so it can be controlled remotely.")
+parser = argparse.ArgumentParser(
+    description="Run this on the Dalek so it can be controlled remotely.")
 parser.add_argument("soundDir", help="Directory containing sound files")
 parser.add_argument("textToSpeech", help="Text to speech command")
 
@@ -46,6 +49,7 @@ args = parser.parse_args()
 
 dalek = Dalek(args.soundDir, args.textToSpeech)
 connected = False
+
 
 class Receiver(WebSocket):
     def handleConnected(self):
@@ -84,20 +88,17 @@ class Receiver(WebSocket):
     def handleMessage(self):
         try:
             if self.connected:
-                msg = map(str, self.data.strip().split(":"))
+                msg = json.loads(self.data.strip())
                 print "Network received: '%s'" % str(msg)
-                if len(msg) >= 1:
-                    self.handle_recv(msg[0], msg[1:])
+                if type(msg) == list and len(msg) >= 1:
+                    self.handle_recv(unicode(msg[0]), map(unicode, msg[1:]))
                 else:
                     print_error(msg)
         except Exception as e:
             print e
 
     def send(self, *msg):
-        self.sendMessage(u":".join(map(unicode, msg)))
-
-    def send_binary(self, data):
-        self.sendMessage(bytearray(data))
+        self.sendMessage(unicode(json.dumps(map(unicode, msg)) + "\n"))
 
     def send_ready(self):
         self.send(READY, dalek.battery.get_battery_status())
@@ -106,7 +107,7 @@ class Receiver(WebSocket):
         self.send(BUSY)
 
     def send_snapshot(self, data):
-        self.send_binary(data)
+        self.send(SNAPSHOT, base64.b64encode(data))
 
     def send_battery(self, data):
         self.send(BATTERY, data)
@@ -172,6 +173,7 @@ class Receiver(WebSocket):
 
     def toggle_lights(self):
         dalek.voice.toggle_lights()
+
 
 server = SimpleWebSocketServer("", DALEK_PORT, Receiver)
 print "Network: starting"

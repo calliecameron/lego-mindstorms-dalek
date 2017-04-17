@@ -27,6 +27,7 @@ $(document).ready(function() {
             disconnected_box.show("Lost connection to the Dalek. Trying to reconnect...");
         },
         function(data) {
+            // data is a base64-encoded image
             console.log("Got snapshot");
         },
         function(battery) {
@@ -379,10 +380,10 @@ $(document).ready(function() {
         function onmessage(event) {
             log(event);
             if (typeof event.data === "string") {
-                var msg = event.data.trim().split(":");
+                var msg = JSON.parse(event.data.trim());
                 log(msg);
 
-                if (msg.length > 0) {
+                if (Array.isArray(msg) && msg.length > 0) {
                     var cmd = msg[0];
                     var args = msg.slice(1);
 
@@ -398,14 +399,14 @@ $(document).ready(function() {
                         socket.close();
                     } else if (cmd === BATTERY && state === STATE_READY && args.length > 0) {
                         batteryHandler(args[0]);
+                    } else if (cmd === SNAPSHOT && state === STATE_READY && args.length > 0) {
+                        snapshotHandler(args[0]);
                     } else {
                         logError(msg);
                     }
                 } else {
                     logError(event.data);
                 }
-            } else if (typeof event.data === "object" && event.data instanceof Blob) {
-                snapshotHandler(event.data);
             } else {
                 logError(event.data);
             }
@@ -446,7 +447,7 @@ $(document).ready(function() {
 
         function send() {
             if (state === STATE_READY) {
-                var data = Array.prototype.join.call(arguments, ":");
+                var data = JSON.stringify(Array.from(arguments));
                 if (verbose) {
                     console.log("Network sending: '%s'", data);
                 }
