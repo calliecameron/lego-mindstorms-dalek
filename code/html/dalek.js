@@ -29,6 +29,7 @@ $(document).ready(function() {
         function(data) {
             // data is a base64-encoded image
             console.log("Got snapshot");
+            $("#snapshot").attr("src", "data:image/jpeg;base64," + data);
         },
         function(battery) {
             $("#battery").text(battery);
@@ -52,11 +53,15 @@ $(document).ready(function() {
 
     $("#button-foobar").click(function() {
         socket.exit();
-    })
+    });
 
     $("#button-speak").click(function() {
         socket.playSound($("#speak-text").val());
-    })
+    });
+
+    $("#button-snapshot").click(function() {
+        socket.snapshot();
+    });
 // SOUND_DICT = {pygame.K_1: "exterminate",
 //               pygame.K_2: "gun",
 //               pygame.K_3: "exterminate-exterminate-exterminate",
