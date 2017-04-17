@@ -20,6 +20,10 @@ $(document).ready(function() {
     var disconnected_box = DisconnectedBox();
     var battery_indicator = BatteryIndicator();
 
+    var camera = Camera();
+    var head_control = HeadControl();
+    var drive_control = DriveControl();
+
     var socket = Socket({
         ready: function() {
             disconnected_box.hide();
@@ -31,6 +35,8 @@ $(document).ready(function() {
         disconnected: function() {
             battery_indicator.disconnected();
             camera.disconnected();
+            head_control.disconnected();
+            drive_control.disconnected();
             disconnected_box.show("Lost connection to the Dalek. Trying to reconnect...");
         },
         snapshot: function(data) {
@@ -41,7 +47,6 @@ $(document).ready(function() {
         }
     });
 
-    camera = Camera();
 
 
     var keyboard = Keyboard({
@@ -56,8 +61,6 @@ $(document).ready(function() {
         13: OneOffKey(function() { camera.snapshot(); }), // Return
     });
 
-    var drive_control = DriveControl();
-    // var head_control = HeadControl();
 
     $("#button-foobar").click(function() {
         socket.exit();
@@ -67,9 +70,6 @@ $(document).ready(function() {
         socket.playSound($("#speak-text").val());
     });
 
-    $("#button-snapshot").click(function() {
-        socket.snapshot();
-    });
 // SOUND_DICT = {pygame.K_1: "exterminate",
 //               pygame.K_2: "gun",
 //               pygame.K_3: "exterminate-exterminate-exterminate",
@@ -433,76 +433,69 @@ $(document).ready(function() {
     }
 
 
-    function DriveControl() {
-        var RADIUS = 200;
-        var RATE_LIMIT = 500;
-        var last_sent = 0;
-
-        var joystick_manager = nipplejs.create({
-            zone: $("#foobar")[0],
-            color: "#00ffff",
-            position: { top: "300px", left: "300px" },
-            size: 2 * RADIUS,
-            mode: "static"
-        });
-
-        var last_x = 0;
-        var last_y = 0;
-
-        joystick_manager.on("move", function(evt, data) {
-            if (timeSince(last_sent) > RATE_LIMIT) {
-                var angle = data.angle.radian;
-                var distance = data.distance;
-                var x = distance * Math.cos(angle) / RADIUS;
-                var y = distance * Math.sin(angle) / RADIUS;
-
-                if (Math.abs(y) > 0.1) {
-                    socket.beginCmd(DRIVE, y);
-                    last_y = y;
-                }
-
-                if (Math.abs(x) > 0.1) {
-                    socket.beginCmd(TURN, x);
-                    last_x = x;
-                }
-
-                last_sent = new Date().getTime();
-            }
-        });
-
-        joystick_manager.on("end", function() {
-            socket.stop();
-        });
-    }
-
-    function HeadControl() {
-        var slider = $("#head-slider");
-
-        slider.slider({
-            orientation: "horizontal",
-            min: -1,
-            max: 1,
-            value: 0,
-            step: 0.01,
-            slide: function(event, ui) {
-                socket.beginCmd(HEAD_TURN, slider.slider("value"));
-            },
-            change: function(event, ui) {
-                socket.beginCmd(HEAD_TURN, slider.slider("value"));
-            },
-            stop: function(event, ui) {
-                slider.slider("value", 0);
-                socket.stop();
-            }
-        });
-    }
 
 
-
-
-    
     function timeSince(time) {
         return new Date().getTime() - time;
+    }
+
+
+
+
+    function Timer(fn, interval) {
+        var timer = null;
+
+        function stop() {
+            if (timer !== null) {
+                window.clearTimeout(timer);
+            }
+            timer = null;
+        }
+
+        return {
+            restart: function() {
+                stop();
+                timer = window.setTimeout(fn, interval);
+            },
+            stop: stop
+        };
+    }
+
+    function RateLimit(msec, callback) {
+        var last_called = 0;
+
+        return {
+            call: function() {
+                if (timeSince(last_called) > msec) {
+                    last_called = new Date().getTime();
+                    callback.apply(null, arguments);
+                }
+            },
+            reset: function() {
+                last_called = 0;
+            }
+        }
+    }
+
+    function SpinnerWidget(parent_id) {
+        var parent = $(parent_id)[0];
+        var spinner = new Spinner({
+            color:"#3d86cb",
+            lines: 13,
+            radius: 40,
+            length: 50,
+            width: 14,
+            corners: 1
+        });
+
+        return {
+            start: function() {
+                spinner.spin(parent);
+            },
+            stop: function() {
+                spinner.stop();
+            }
+        };
     }
 
     function DialogBox(trigger_id, box_id, close_button_id) {
@@ -527,10 +520,7 @@ $(document).ready(function() {
     function DisconnectedBox() {
         var modal = $("#disconnected-box");
         var message_text = $("#disconnected-message");
-        var spinner = new Spinner({
-            color:"#3d86cb",
-            lines: 12,
-        });
+        var spinner = SpinnerWidget("#disconnected-spinner");
 
         modal.modal({
             backdrop: "static",
@@ -540,7 +530,7 @@ $(document).ready(function() {
 
         function show(message) {
             message_text.text(message);
-            spinner.spin($("#disconnected-spinner")[0]);
+            spinner.start();
             modal.modal("show");
         }
 
@@ -730,25 +720,19 @@ $(document).ready(function() {
     function Camera() {
         var STATIC = "static.gif";
         var image = $("#camera-snapshot");
-        var spinner = new Spinner({
-            color:"#3d86cb",
-            lines: 12,
-            radius: 40,
-            length: 50,
-            width: 14,
-            corners: 1
-        });
-
-        function snapshot() {
+        var spinner = SpinnerWidget("#camera-images");
+        var snapshot = RateLimit(2000, function() {
             socket.snapshot();
-            spinner.spin($("#camera-images")[0]);
-        }
+            spinner.start();
+            timer.restart();
+        });
+        var timer = Timer(snapshot.call, 30000);
 
-        $("#camera-button").click(snapshot);
-        $("#camera-overlay").click(snapshot);
+        $("#camera-button").click(snapshot.call);
+        $("#camera-overlay").click(snapshot.call);
 
         return {
-            snapshot: snapshot,
+            snapshot: snapshot.call,
             gotSnapshot: function(data) {
                 // data is a base64-encoded image
                 image.attr("src", "data:image/jpeg;base64," + data);
@@ -757,6 +741,84 @@ $(document).ready(function() {
             disconnected: function() {
                 image.attr("src", STATIC);
                 spinner.stop();
+                timer.stop();
+                snapshot.reset();
+            }
+        };
+    }
+
+    function HeadControl() {
+        var slider = $("#head-slider");
+        var trigger = RateLimit(500, function() {
+            socket.beginCmd(HEAD_TURN, slider.slider("value"));
+        });
+
+        slider.slider({
+            orientation: "horizontal",
+            min: -1,
+            max: 1,
+            value: 0,
+            step: 0.01,
+            slide: trigger.call,
+            change: trigger.call,
+            stop: function() {
+                slider.slider("value", 0);
+                socket.stop();
+            }
+        });
+
+        return {
+            disconnected: function() {
+                slider.slider("value", 0);
+                trigger.reset();
+            }
+        };
+    }
+
+    function DriveControl() {
+        var RADIUS = 180;
+
+        var trigger = RateLimit(500, function(evt, data) {
+            var angle = data.angle.radian;
+            var distance = data.distance;
+            var x = distance * Math.cos(angle) / RADIUS;
+            var y = distance * Math.sin(angle) / RADIUS;
+
+            if (Math.abs(y) > 0.1) {
+                socket.beginCmd(DRIVE, y);
+            }
+
+            if (Math.abs(x) > 0.1) {
+                socket.beginCmd(TURN, x);
+            }
+        });
+
+        var joystick_manager = nipplejs.create({
+            zone: $("#drive-control")[0],
+            restOpacity: 1.0,
+            size: 2 * RADIUS,
+            position: {
+                left: RADIUS + "px",
+                top: RADIUS + "px"
+            },
+            mode: "static"
+        });
+
+        // There doesn't seem to be a proper way to customise the UI, so force it
+        $(joystick_manager.get(0).ui.back).removeAttr("style");
+        $(joystick_manager.get(0).ui.front).removeAttr("style");
+        $(joystick_manager.get(0).ui.front).addClass("drive-control-handle");
+        $(joystick_manager.get(0).ui.front).addClass("ui-slider-handle");
+        $(joystick_manager.get(0).ui.front).addClass("ui-state-default");
+
+        joystick_manager.on("move", trigger.call);
+        joystick_manager.on("end", function() {
+            socket.stop();
+        });
+
+        return {
+            disconnected: function() {
+                trigger.reset();
             }
         };
     }

@@ -63,7 +63,7 @@
     <div class="container">
       <div class="row">
 
-        <div class="col-xs-6">
+        <div class="col-sm-6">
           <div class="camera-main">
             <div id="camera-images" class="camera-images">
               <img src="static.gif" id="camera-snapshot" class="camera-image">
@@ -75,9 +75,15 @@
           </div>
         </div>
 
-        <div class="col-xs-6">
+        <div class="col-sm-6">
+          <div class="control-main">
+            <div id="head-control" class="head-control">
+              <div id="head-slider" class="head-slider">
+              </div>
+            </div>
 
-          <div class="panel panel-primary" id="foobar">
+            <div id="drive-control" class="drive-control ui-widget-content">
+            </div>
           </div>
 
           <div class="panel panel-primary">
@@ -88,8 +94,6 @@
           </div>
       </div>
     </div>
-
-    <!-- <div style="width: 200px; height: 20px; background-color: #000000" id="head-slider"></div> -->
 
 
 
@@ -147,7 +151,7 @@
         <div class="modal-content">
           <div class="modal-body">
             <p class="text-center"><span id="disconnected-message">Connecting...</span></p>
-            <div id="disconnected-spinner" class="spinner-small"></div>
+            <div id="disconnected-spinner" class="disconnected-spinner"></div>
           </div>
         </div>
       </div>
@@ -155,6 +159,7 @@
 
     <script src="jquery-3.2.1.min.js"></script>
     <script src="jquery-ui-1.12.1/jquery-ui.min.js"></script>
+    <script src="jquery.ui.touch-punch.min.js"></script>
     <script src="bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
     <script src="nipplejs.js"></script>
     <script src="spin.js"></script>

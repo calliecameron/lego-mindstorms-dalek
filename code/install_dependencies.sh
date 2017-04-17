@@ -24,4 +24,5 @@ download https://jqueryui.com/resources/download/jquery-ui-themes-1.12.1.zip &&
 download https://jqueryui.com/resources/download/jquery-ui-1.12.1.zip &&
 wget https://code.jquery.com/jquery-3.2.1.min.js -O jquery-3.2.1.min.js &&
 download http://fontawesome.io/assets/font-awesome-4.7.0.zip &&
-wget https://bootswatch.com/darkly/bootstrap.min.css -O bootstrap.min.css
+wget https://bootswatch.com/darkly/bootstrap.min.css -O bootstrap.min.css &&
+wget https://raw.github.com/furf/jquery-ui-touch-punch/master/jquery.ui.touch-punch.min.js -O jquery.ui.touch-punch.min.js
