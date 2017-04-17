@@ -4,6 +4,7 @@ without having the real ev3 to hand."""
 import time
 import subprocess
 
+
 class Motor(object):
     def __init__(self, port, mtype):
         super(Motor, self).__init__()
@@ -33,9 +34,11 @@ class LargeMotor(Motor):
     def __init__(self, port):
         super(LargeMotor, self).__init__(port, "Large")
 
+
 class MediumMotor(Motor):
     def __init__(self, port):
         super(MediumMotor, self).__init__(port, "Medium")
+
 
 class TouchSensor(object):
     def __init__(self, port):
@@ -45,10 +48,12 @@ class TouchSensor(object):
     def value(self):
         return 0
 
+
 class PowerSupply(object):
     def __init__(self):
         super(PowerSupply, self).__init__()
         self.measured_volts = 8
+
 
 class Leds(object):
     def __init__(self, port):

@@ -1,4 +1,4 @@
-"""Main logic for the Dalek. Use one of the other scripts to actually control it."""
+"""Main logic for the Dalek."""
 
 import os
 import os.path
@@ -7,24 +7,29 @@ import tempfile
 import time
 import threading
 
-# To test the code on a machine that isn't a Dalek, set the environment variable
-# FAKE_DALEK. This is mainly intended for developing network code when the actual
-# ev3 isn't to hand.
+from dalek_common import (sound_filename, espeakify, clamp_control_range, sign,
+                          EventQueue, DurationAction, RunAfterTime,
+                          RepeatingAction)
+
+# To test the code on a machine that isn't a Dalek, set the
+# environment variable FAKE_DALEK. This is mainly intended for
+# developing network code when the actual ev3 isn't to hand.
 if os.getenv("FAKE_DALEK"):
     FAKE_DALEK = True
 else:
     FAKE_DALEK = False
 
-from dalek_common import sound_filename, espeakify, clamp_control_range, sign, EventQueue, DurationAction, RunAfterTime, RepeatingAction
 
 if FAKE_DALEK:
-    from fake_ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply, Leds
+    from fake_ev3 import (LargeMotor, MediumMotor, TouchSensor, PowerSupply,
+                          Leds)
 else:
     from ev3dev.ev3 import LargeMotor, MediumMotor, TouchSensor, PowerSupply
     from ev3extra import Leds
 
 
 TICK_LENGTH_SECONDS = 0.1
+
 
 class TwoWayControl(object):
     def __init__(self):
@@ -189,9 +194,14 @@ class Head(EventQueue):
             self.update_motor_speed()
         return action
 
+    def position_out_of_bounds(self):
+        return ((self.control.value > 0 and
+                 self.motor.position > Head.HEAD_LIMIT) or
+                (self.control.value < 0 and
+                 self.motor.position < -Head.HEAD_LIMIT))
+
     def pre_process(self):
-        if ((self.control.value > 0 and self.motor.position > Head.HEAD_LIMIT)
-            or (self.control.value < 0 and self.motor.position < -Head.HEAD_LIMIT)):
+        if self.position_out_of_bounds():
             self.shutdown()
 
     def stop(self):
@@ -300,9 +310,11 @@ class Voice(EventQueue):
     def fire_gun(self):
         self.speak("gun")
 
+
 class Camera(EventQueue):
-    def __init__(self):
+    def __init__(self, snapshot_command):
         super(Camera, self).__init__()
+        self.snapshot_command = snapshot_command
         self.snapshot_handler = None
         self.output_file = tempfile.mktemp(suffix=".jpeg")
         self.proc = None
@@ -317,7 +329,9 @@ class Camera(EventQueue):
     def take_snapshot(self):
         def action():
             with open("/dev/null", "w") as devnull:
-                self.proc = subprocess.Popen(["streamer", "-s", "800x600", "-o", self.output_file], stdout=devnull, stderr=devnull)
+                self.proc = subprocess.Popen(
+                    [self.snapshot_command, self.output_file],
+                    stdout=devnull, stderr=devnull)
 
         def cleanup():
             if self.is_busy():
@@ -340,11 +354,13 @@ class Camera(EventQueue):
         else:
             return False
 
+
 class Battery(EventQueue):
     def __init__(self):
         super(Battery, self).__init__()
         self.power_supply = PowerSupply()
         self.battery_handler = None
+
         def handle():
             if self.battery_handler:
                 self.battery_handler(self.get_battery_status())
@@ -362,6 +378,7 @@ class Battery(EventQueue):
 
     def shutdown(self):
         self.clear()
+
 
 class ControllerThread(threading.Thread):
     def __init__(self, parent):
@@ -392,15 +409,16 @@ class ControllerThread(threading.Thread):
             self.parent.battery.process()
             time.sleep(TICK_LENGTH_SECONDS)
 
+
 class Dalek(object):
     """Main Dalek controller"""
 
-    def __init__(self, sound_dir, text_to_speech_command):
+    def __init__(self, sound_dir, text_to_speech_command, snapshot_command):
         super(Dalek, self).__init__()
         self.drive = Drive()
         self.head = Head(self)
         self.voice = Voice(sound_dir, text_to_speech_command)
-        self.camera = Camera()
+        self.camera = Camera(snapshot_command)
         self.battery = Battery()
         self.thread = ControllerThread(self)
         self.thread.start()

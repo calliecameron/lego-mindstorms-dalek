@@ -43,11 +43,12 @@ parser = argparse.ArgumentParser(
     description="Run this on the Dalek so it can be controlled remotely.")
 parser.add_argument("soundDir", help="Directory containing sound files")
 parser.add_argument("textToSpeech", help="Text to speech command")
+parser.add_argument("snapshot", help="Snapshot command")
 
 args = parser.parse_args()
 
 
-dalek = Dalek(args.soundDir, args.textToSpeech)
+dalek = Dalek(args.soundDir, args.textToSpeech, args.snapshot)
 connected = False
 
 

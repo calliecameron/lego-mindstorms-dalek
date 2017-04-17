@@ -3,19 +3,24 @@
 import os.path
 import time
 
+
 class Leds(object):
     def __init__(self, port):
         super(Leds, self).__init__()
 
         port_map = {"A": "4", "B": "5", "C": "6", "D": "7"}
-        mode_path = "/sys/devices/platform/legoev3-ports/lego-port/port%s/mode" % port_map[port]
+        mode_path = (
+            "/sys/devices/platform/legoev3-ports/lego-port/port%s/mode" %
+            port_map[port])
         with open(mode_path, "w") as f:
             f.write("led\n")
 
         # Give the system time to set up the changes
         time.sleep(1)
 
-        self.control_path = "/sys/bus/lego/devices/out%s:rcx-led/leds/out%s::ev3dev/brightness" % (port, port)
+        self.control_path = (
+            "/sys/bus/lego/devices/out%s:rcx-led/leds/out%s::ev3dev/brightness"
+            % (port, port))
         if not os.path.exists(self.control_path):
             raise Exception("Cannot find LEDs on port %s" % port)
         self.off()

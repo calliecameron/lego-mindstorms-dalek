@@ -28,7 +28,6 @@ $(document).ready(function() {
         },
         function(data) {
             // data is a base64-encoded image
-            console.log("Got snapshot");
             $("#snapshot").attr("src", "data:image/jpeg;base64," + data);
         },
         function(battery) {

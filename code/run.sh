@@ -23,11 +23,14 @@ function cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-cd "${THIS_DIR}/html"
+cd "${THIS_DIR}/html" || exit 1
 python -m SimpleHTTPServer 12345 &
 HTTP="${!}"
-cd "${THIS_DIR}/internal"
-python "${THIS_DIR}/internal/remote_receiver.py" "${SOUNDS_DIR}" "${THIS_DIR}/internal/text_to_speech.sh" &
+cd "${THIS_DIR}/internal" || exit 1
+python "${THIS_DIR}/internal/remote_receiver.py" \
+       "${SOUNDS_DIR}" \
+       "${THIS_DIR}/internal/text_to_speech.sh" \
+       "${THIS_DIR}/internal/snapshot.sh" &
 WEBSOCKET="${!}"
 wait "${WEBSOCKET}"
 cleanup
