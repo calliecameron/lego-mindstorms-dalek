@@ -22,4 +22,6 @@ cd "${THIS_DIR}/html" &&
 download https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip &&
 download https://jqueryui.com/resources/download/jquery-ui-themes-1.12.1.zip &&
 download https://jqueryui.com/resources/download/jquery-ui-1.12.1.zip &&
-wget https://code.jquery.com/jquery-3.2.1.min.js
+wget https://code.jquery.com/jquery-3.2.1.min.js -O jquery-3.2.1.min.js &&
+download http://fontawesome.io/assets/font-awesome-4.7.0.zip &&
+wget https://bootswatch.com/darkly/bootstrap.min.css -O bootstrap.min.css

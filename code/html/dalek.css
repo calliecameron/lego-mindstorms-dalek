@@ -1,0 +1,31 @@
+.spinner-small {
+    display: block;
+    height: 80px;
+    position: relative;
+}
+
+.battery-low {
+    color: red;
+}
+
+.camera-main {
+    height: 480px;
+    margin: auto;
+    width: 360px;
+}
+
+.camera-images {
+    height: 480px;
+    position: relative;
+    width: 360px;
+}
+
+.camera-image {
+    height: 480px;
+    position: absolute;
+    width: 360px;
+}
+
+.camera-button {
+    margin-top: 20px;
+}

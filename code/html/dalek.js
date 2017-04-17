@@ -14,26 +14,35 @@ $(document).ready(function() {
     var TOGGLE_LIGHTS = "togglelights";
     var BATTERY = "battery";
 
-    var disconnected_box = DisconnectedBox();
+    DialogBox("#btn-about", "#about-box", "#about-box-close");
+    DialogBox("#btn-battery", "#battery-box", "#battery-box-close");
 
-    var socket = Socket(
-        function() {
+    var disconnected_box = DisconnectedBox();
+    var battery_indicator = BatteryIndicator();
+
+    var socket = Socket({
+        ready: function() {
             disconnected_box.hide();
+            camera.snapshot();
         },
-        function() {
+        busy: function() {
             disconnected_box.show("Someone else is already connected to the Dalek. Trying to connect...");
         },
-        function() {
+        disconnected: function() {
+            battery_indicator.disconnected();
+            camera.disconnected();
             disconnected_box.show("Lost connection to the Dalek. Trying to reconnect...");
         },
-        function(data) {
-            // data is a base64-encoded image
-            $("#snapshot").attr("src", "data:image/jpeg;base64," + data);
+        snapshot: function(data) {
+            camera.gotSnapshot(data);
         },
-        function(battery) {
-            $("#battery").text(battery);
+        battery: function(battery) {
+            battery_indicator.set(battery);
         }
-    );
+    });
+
+    camera = Camera();
+
 
     var keyboard = Keyboard({
         87: CommandKey(DRIVE, 1.0), // W
@@ -44,11 +53,11 @@ $(document).ready(function() {
         69: CommandKey(HEAD_TURN, 1.0), // E
         86: OneOffKey(function() { socket.toggleVerbose(); }), // V
         76: OneOffKey(function() { socket.toggleLights(); }), // L
-        13: OneOffKey(function() { socket.snapshot(); }), // Return
+        13: OneOffKey(function() { camera.snapshot(); }), // Return
     });
 
     var drive_control = DriveControl();
-    var head_control = HeadControl();
+    // var head_control = HeadControl();
 
     $("#button-foobar").click(function() {
         socket.exit();
@@ -362,136 +371,6 @@ $(document).ready(function() {
 
 
 
-    function Socket(readyHandler, busyHandler, disconnectedHandler, snapshotHandler, batteryHandler) {
-        var STATE_DISCONNECTED = 0;
-        var STATE_READY = 1;
-        var STATE_BUSY = 2;
-
-        var verbose = false;
-        var state = STATE_DISCONNECTED;
-        var socket = null;
-
-        function log(arg) {
-            if (verbose) {
-                console.log(arg);
-            }
-        }
-
-        function logError(args) {
-            console.log("Network: bad message '%s'", args);
-        }
-
-        function onmessage(event) {
-            log(event);
-            if (typeof event.data === "string") {
-                var msg = JSON.parse(event.data.trim());
-                log(msg);
-
-                if (Array.isArray(msg) && msg.length > 0) {
-                    var cmd = msg[0];
-                    var args = msg.slice(1);
-
-                    if (cmd === READY && state !== STATE_READY && args.length > 0) {
-                        state = STATE_READY;
-                        readyHandler();
-                        batteryHandler(args[0]);
-                    } else if (cmd === BUSY) {
-                        if (state != STATE_BUSY) {
-                            busyHandler();
-                        }
-                        state = STATE_BUSY;
-                        socket.close();
-                    } else if (cmd === BATTERY && state === STATE_READY && args.length > 0) {
-                        batteryHandler(args[0]);
-                    } else if (cmd === SNAPSHOT && state === STATE_READY && args.length > 0) {
-                        snapshotHandler(args[0]);
-                    } else {
-                        logError(msg);
-                    }
-                } else {
-                    logError(event.data);
-                }
-            } else {
-                logError(event.data);
-            }
-        }
-
-        function onclose(event) {
-            log(event);
-            if (state === STATE_READY) {
-                disconnectedHandler();
-                state = STATE_DISCONNECTED;
-            }
-            if (socket !== null) {
-                socket = null;
-                window.setTimeout(connectionAttempt, 5000);
-            }
-        }
-
-        function onerror(event) {
-            log(event);
-            if (state !== STATE_DISCONNECTED) {
-                disconnectedHandler();
-                state = STATE_DISCONNECTED;
-            }
-            if (socket !== null) {
-                socket = null;
-                window.setTimeout(connectionAttempt, 5000);
-            }
-        }
-
-        function connectionAttempt() {
-            if (state === STATE_DISCONNECTED || state === STATE_BUSY) {
-                socket = new WebSocket("ws://" + window.location.hostname + ":12346");
-                socket.onmessage = onmessage;
-                socket.onclose = onclose;
-                socket.onerror = onerror;
-            }
-        }
-
-        function send() {
-            if (state === STATE_READY) {
-                var data = JSON.stringify(Array.from(arguments));
-                if (verbose) {
-                    console.log("Network sending: '%s'", data);
-                }
-                socket.send(data + "\n");
-            }
-        }
-
-        connectionAttempt();
-
-        return {
-            toggleVerbose: function() {
-                verbose = !verbose;
-            },
-            beginCmd: function(cmd, value) {
-                send(BEGIN, cmd, value);
-            },
-            releaseCmd: function(cmd, value) {
-                send(RELEASE, cmd, value);
-            },
-            stop: function() {
-                send(STOP);
-            },
-            playSound: function(sound) {
-                send(PLAY_SOUND, sound);
-            },
-            stopSound: function() {
-                send(STOP_SOUND);
-            },
-            snapshot: function() {
-                send(SNAPSHOT);
-            },
-            toggleLights: function() {
-                send(TOGGLE_LIGHTS);
-            },
-            exit: function() {
-                send(EXIT);
-                socket.close();
-            }
-        };
-    }
 
     function KeyHandler(down, up, repeat) {
         var pressed = false;
@@ -553,33 +432,6 @@ $(document).ready(function() {
         });
     }
 
-    function DisconnectedBox() {
-        var modal = $("#disconnected-dialog");
-        var message_text = $("#disconnected-message");
-        var spinner = new Spinner({color:'#0000ff', lines: 12});
-
-        modal.modal({
-            backdrop: "static",
-            keyboard: false,
-            show: true
-        });
-
-        function show(message) {
-            message_text.text(message);
-            spinner.spin($("#spinner-div")[0]);
-            modal.modal("show");
-        }
-
-        show("Connecting...");
-
-        return {
-            show: show,
-            hide: function() {
-                modal.modal("hide");
-                spinner.stop();
-            }
-        };
-    }
 
     function DriveControl() {
         var RADIUS = 200;
@@ -645,7 +497,267 @@ $(document).ready(function() {
         });
     }
 
+
+
+
+    
     function timeSince(time) {
         return new Date().getTime() - time;
+    }
+
+    function DialogBox(trigger_id, box_id, close_button_id) {
+        var modal = $(box_id);
+        var close = $(close_button_id);
+
+        modal.modal({
+            backdrop: "static",
+            keyboard: false,
+            show: false
+        });
+
+        $(trigger_id).click(function() {
+            modal.modal("show");
+        });
+
+        close.click(function() {
+            modal.modal("hide");
+        });
+    }
+
+    function DisconnectedBox() {
+        var modal = $("#disconnected-box");
+        var message_text = $("#disconnected-message");
+        var spinner = new Spinner({
+            color:"#3d86cb",
+            lines: 12,
+        });
+
+        modal.modal({
+            backdrop: "static",
+            keyboard: false,
+            show: true
+        });
+
+        function show(message) {
+            message_text.text(message);
+            spinner.spin($("#disconnected-spinner")[0]);
+            modal.modal("show");
+        }
+
+        show("Connecting...");
+
+        return {
+            show: show,
+            hide: function() {
+                modal.modal("hide");
+                spinner.stop();
+            }
+        };
+    }
+
+    function BatteryIndicator() {
+        var LOW_THRESHOLD = 5; // TODO check this
+        var LOW_ICON = "fa-battery-quarter";
+        var NORMAL_ICON = "fa-battery-full";
+        var LOW_HIGHLIGHT = "battery-low";
+
+        var icon = $("#battery-icon");
+        var text = $("#battery-text");
+
+        function setNormal() {
+            icon.removeClass(LOW_ICON);
+            icon.addClass(NORMAL_ICON);
+            icon.removeClass(LOW_HIGHLIGHT);
+            text.removeClass(LOW_HIGHLIGHT);
+        }
+
+        function setLow() {
+            icon.removeClass(NORMAL_ICON);
+            icon.addClass(LOW_ICON);
+            icon.addClass(LOW_HIGHLIGHT);
+            text.addClass(LOW_HIGHLIGHT);
+        }
+
+        function disconnected() {
+            setNormal();
+            text.text("?");
+        }
+
+        return {
+            set: function(level) {
+                text.text(level);
+                if (level < LOW_THRESHOLD) {
+                    setLow();
+                } else {
+                    setNormal();
+                }
+            },
+            disconnected: disconnected
+        };
+    }
+
+    function Socket(callbacks) {
+        var STATE_DISCONNECTED = 0;
+        var STATE_READY = 1;
+        var STATE_BUSY = 2;
+
+        var verbose = false;
+        var state = STATE_DISCONNECTED;
+        var socket = null;
+
+        function log(arg) {
+            if (verbose) {
+                console.log(arg);
+            }
+        }
+
+        function logError(args) {
+            console.log("Network: bad message '%s'", args);
+        }
+
+        function onmessage(event) {
+            log(event);
+            if (typeof event.data === "string") {
+                var msg = JSON.parse(event.data.trim());
+                log(msg);
+
+                if (Array.isArray(msg) && msg.length > 0) {
+                    var cmd = msg[0];
+                    var args = msg.slice(1);
+
+                    if (cmd === READY && state !== STATE_READY && args.length > 0) {
+                        state = STATE_READY;
+                        callbacks.ready();
+                        callbacks.battery(args[0]);
+                    } else if (cmd === BUSY) {
+                        if (state != STATE_BUSY) {
+                            callbacks.busy();
+                        }
+                        state = STATE_BUSY;
+                        socket.close();
+                    } else if (cmd === BATTERY && state === STATE_READY && args.length > 0) {
+                        callbacks.battery(args[0]);
+                    } else if (cmd === SNAPSHOT && state === STATE_READY && args.length > 0) {
+                        callbacks.snapshot(args[0]);
+                    } else {
+                        logError(msg);
+                    }
+                } else {
+                    logError(event.data);
+                }
+            } else {
+                logError(event.data);
+            }
+        }
+
+        function onclose(event) {
+            log(event);
+            if (state === STATE_READY) {
+                callbacks.disconnected();
+                state = STATE_DISCONNECTED;
+            }
+            if (socket !== null) {
+                socket = null;
+                window.setTimeout(connectionAttempt, 5000);
+            }
+        }
+
+        function onerror(event) {
+            log(event);
+            if (state !== STATE_DISCONNECTED) {
+                callbacks.disconnected();
+                state = STATE_DISCONNECTED;
+            }
+            if (socket !== null) {
+                socket = null;
+                window.setTimeout(connectionAttempt, 5000);
+            }
+        }
+
+        function connectionAttempt() {
+            if (state === STATE_DISCONNECTED || state === STATE_BUSY) {
+                socket = new WebSocket("ws://" + window.location.hostname + ":12346");
+                socket.onmessage = onmessage;
+                socket.onclose = onclose;
+                socket.onerror = onerror;
+            }
+        }
+
+        function send() {
+            if (state === STATE_READY) {
+                var data = JSON.stringify(Array.from(arguments));
+                if (verbose) {
+                    console.log("Network sending: '%s'", data);
+                }
+                socket.send(data + "\n");
+            }
+        }
+
+        connectionAttempt();
+
+        return {
+            toggleVerbose: function() {
+                verbose = !verbose;
+            },
+            beginCmd: function(cmd, value) {
+                send(BEGIN, cmd, value);
+            },
+            releaseCmd: function(cmd, value) {
+                send(RELEASE, cmd, value);
+            },
+            stop: function() {
+                send(STOP);
+            },
+            playSound: function(sound) {
+                send(PLAY_SOUND, sound);
+            },
+            stopSound: function() {
+                send(STOP_SOUND);
+            },
+            snapshot: function() {
+                send(SNAPSHOT);
+            },
+            toggleLights: function() {
+                send(TOGGLE_LIGHTS);
+            },
+            exit: function() {
+                send(EXIT);
+                socket.close();
+            }
+        };
+    }
+
+    function Camera() {
+        var STATIC = "static.gif";
+        var image = $("#camera-snapshot");
+        var spinner = new Spinner({
+            color:"#3d86cb",
+            lines: 12,
+            radius: 40,
+            length: 50,
+            width: 14,
+            corners: 1
+        });
+
+        function snapshot() {
+            socket.snapshot();
+            spinner.spin($("#camera-images")[0]);
+        }
+
+        $("#camera-button").click(snapshot);
+        $("#camera-overlay").click(snapshot);
+
+        return {
+            snapshot: snapshot,
+            gotSnapshot: function(data) {
+                // data is a base64-encoded image
+                image.attr("src", "data:image/jpeg;base64," + data);
+                spinner.stop();
+            },
+            disconnected: function() {
+                image.attr("src", STATIC);
+                spinner.stop();
+            }
+        };
     }
 });
