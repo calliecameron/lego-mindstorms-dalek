@@ -72,3 +72,7 @@
     position: absolute;
     width: 60px;
 }
+
+.speech-button {
+    width: 20%;
+}
