@@ -16,7 +16,7 @@ function download() {
     fi
 }
 
-sudo apt-get -y install streamer espeak imagemagick &&
+sudo apt-get -y install streamer espeak imagemagick wget unzip &&
 
 cd "${THIS_DIR}/html" &&
 download https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip &&
