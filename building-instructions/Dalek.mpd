@@ -1,7 +1,7 @@
 0 FILE Dalek.ldr
 0 Dalek
 0 Name: Dalek.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -10,14 +10,14 @@
 0 FILE DalekPlungerArm.ldr
 0 Dalek - Plunger Arm
 0 Name: DalekPlungerArm.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 
 0
 0 FILE DalekSkirtFront.ldr
 0 Dalek - Skirt Front
 0 Name: DalekSkirtFront.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 
 0 ROTATION CENTER 0 0 0 1 "Custom" 
@@ -39,7 +39,7 @@
 0 FILE DalekSkirtLeft1.ldr
 0 Dalek - Skirt Left 1
 0 Name: DalekSkirtLeft1.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -87,7 +87,7 @@
 0 FILE DalekSkirtRight1.ldr
 0 Dalek - Skirt Right 1
 0 Name: DalekSkirtRight1.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -136,7 +136,7 @@
 0 FILE DalekSkirtLeft2.ldr
 0 Dalek - Skirt Left 2
 0 Name: DalekSkirtLeft2.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -188,7 +188,7 @@
 0 FILE DalekSkirtRight2.ldr
 0 Dalek - Skirt Right 2
 0 Name: DalekSkirtRight2.ldr
-0 Callum Cameron
+0 Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -240,7 +240,7 @@
 0 FILE DalekSkirtLeft3.ldr
 0 Dalek - Skirt Left 3
 0 Name: DalekSkirtLeft3.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -289,7 +289,7 @@
 0 FILE DalekSkirtRight3.ldr
 0 Dalek - Skirt Right 3
 0 Name: DalekSkirtRight3.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0
@@ -338,7 +338,7 @@
 0 FILE DalekSkirtLeft4.ldr
 0 Dalek - Skirt Left 4
 0 Name: DalekSkirtLeft4.ldr
-0 Author: Callum Cameron
+0 Author: Callie Cameron
 0 Unofficial Model
 0 ROTATION CENTER 0 0 0 1 "Custom" 
 0 ROTATION CONFIG 0 0

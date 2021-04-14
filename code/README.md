@@ -7,7 +7,7 @@ On the Dalek
 Install [ev3dev](http://www.ev3dev.org/) using the instructions on their site, and make sure you can SSH into the brick. To set up the code, in a terminal on the brick run:
 
     sudo apt-get -y install git
-    git clone https://github.com/CallumCameron/lego-mindstorms-dalek
+    git clone https://github.com/calliecameron/lego-mindstorms-dalek
     cd lego-mindstorms-dalek/code
     ./install_dependencies_dalek.sh
 
@@ -24,7 +24,7 @@ This assumes you are running Ubuntu 14.04, Mint 17, or a similar Linux distribut
 In a terminal, run:
 
     sudo apt-get -y install git
-    git clone https://github.com/CallumCameron/lego-mindstorms-dalek
+    git clone https://github.com/calliecameron/lego-mindstorms-dalek
     cd lego-mindstorms-dalek/code
     ./install_dependencies_computer.sh
     ./create_desktop_shortcut.sh
