@@ -1,5 +1,4 @@
-Lego Mindstorms Dalek
-=====================
+# Lego Mindstorms Dalek
 
 [Code](code/README.md) and (unfinished) [building instructions](building-instructions/README.md) for a Lego Mindstorms [Dalek](https://en.wikipedia.org/wiki/Dalek), from [Doctor Who](https://en.wikipedia.org/wiki/Doctor_Who).
 
