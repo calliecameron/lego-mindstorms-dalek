@@ -1,4 +1,3 @@
 *~
-*.pyc
-.dir-locals.el
 .env
+.env.leave
