@@ -1,0 +1,14 @@
+[tool.mypy]
+python_version = "3.9"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = []
+
+[tool.pip-tools]
+generate-hashes = true
+strip-extras = true

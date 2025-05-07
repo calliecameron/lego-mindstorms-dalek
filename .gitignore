@@ -1,3 +1,4 @@
 *~
-.env
-.env.leave
+/.env
+/.env.leave
+/.deps-installed
