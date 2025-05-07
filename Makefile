@@ -20,6 +20,7 @@ requirements-dev.txt: requirements-dev.in pyproject.toml
 lint: deps
 	utils/find_shell_files.sh | xargs -d '\n' shellcheck
 	utils/find_shell_files.sh | xargs -d '\n' shfmt -l -d -i 4
+	tidy -config .htmltidy html/index.html
 	ruff check .
 	ruff format --diff .
 	mypy --strict .
