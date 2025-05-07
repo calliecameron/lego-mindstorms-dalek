@@ -4,7 +4,8 @@ all: lint
 .PHONY: deps
 deps: .deps-installed
 
-.deps-installed: requirements.txt requirements-dev.txt
+.deps-installed: utils/install_dependencies.sh requirements.txt requirements-dev.txt
+	utils/install_dependencies.sh
 	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
 	touch .deps-installed
@@ -26,3 +27,14 @@ lint: deps
 .PHONY: clean
 clean:
 	find . '(' -type f -name '*~' ')' -delete
+
+.PHONY: deepclean
+deepclean: clean
+	rm -f .deps-installed
+	rm -rf html/bootstrap-3.3.7-dist
+	rm -rf html/jquery-3.2.1.min.js
+	rm -rf html/jquery-ui-1.12.1
+	rm -rf html/jquery-ui-themes-1.12.1
+	rm -rf html/font-awesome-4.7.0
+	rm -rf html/bootstrap.min.css
+	rm -rf html/jquery.ui.touch-punch.min.js

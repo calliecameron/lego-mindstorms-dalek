@@ -20,6 +20,7 @@ sudo apt-get -y install build-essential curl git libbz2-dev libffi-dev \
     xz-utils zlib1g-dev
 
 source "${THIS_DIR}/env.bash"
+source "${THIS_DIR}/pyenv.bash"
 
 if ! command -v pyenv >/dev/null; then
     TMPDIR="$(mktemp -d)"
