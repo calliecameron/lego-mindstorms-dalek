@@ -2,9 +2,9 @@
 
 set -eu
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ ! -e /etc/os-release ] || ! grep 'ev3dev' /etc/os-release > /dev/null; then
+if [ ! -e /etc/os-release ] || ! grep 'ev3dev' /etc/os-release >/dev/null; then
     echo 'Can only be run on the ev3, exiting'
     exit 1
 fi
