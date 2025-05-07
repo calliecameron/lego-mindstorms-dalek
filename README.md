@@ -16,16 +16,53 @@ Taking a selfie in the mirror:
 
 ## Installation
 
-Install [ev3dev](http://www.ev3dev.org/) Stretch using the instructions on their site, and make sure you can SSH into the brick. To set up the code, in a shell on the brick run:
+1. Install ev3dev Stretch using [these instructions](https://www.ev3dev.org/docs/getting-started/), including the steps to set up SSH and update apt.
 
-```shell
-sudo apt-get -y install git
-git clone https://github.com/calliecameron/lego-mindstorms-dalek
-cd lego-mindstorms-dalek
-./install_dependencies.sh
-```
+2. The following commands use a local copy of the SD card for the rest of the installation; this is much faster than running on the EV3:
 
-Alternatively, mount the brick's SD card on your computer and run the commands inside a chroot using `sudo systemd-nspawn -D $PATH_TO_EV3DEV_ROOTFS --chdir=/ --resolv-conf=bind-host` - this will be faster than running on the brick, and you don't have to worry about the batteries going flat. You may have to install `qemu-user-static` or equivalent for this to work.
+    a. Plug the SD card into the computer, and find its device name, typically `/dev/sda`, `/dev/sdb`, etc. Assuming `/dev/sda`, run:
+
+    ```shell
+    sudo umount /dev/sda1
+    sudo umount /dev/sda2
+    sudo dd bs=4M if=/dev/sda of=dalek.img
+    sudo chown "$(id -u):$(id -g)" dalek.img
+    ```
+
+    b. Remove the SD card.
+
+    c. Ensure qemu is installed; assuming Ubuntu 24.04, run:
+
+    ```shell
+    sudo apt-get install qemu-user-static
+    ```
+
+    d. Chroot into the image:
+
+    ```shell
+    mkdir dalek
+    sudo losetup -P /dev/loop0 dalek.img
+    sudo mount /dev/loop0p2 dalek
+    sudo systemd-nspawn -D dalek --resolv-conf=bind-host --user=1000
+    ```
+
+    e. Inside the image, run:
+
+    ```shell
+    git clone https://github.com/calliecameron/lego-mindstorms-dalek
+    ./lego-mindstorms-dalek/utils/setup_ev3.sh
+    ./lego-mindstorms-dalek/utils/install_dependencies.sh
+    exit
+    ```
+
+    f. Unmount the image:
+
+    ```shell
+    sudo umount dalek
+    sudo losetup -d /dev/loop0
+    ```
+
+    g. Write the image back to the SD card using the same tool used to install ev3dev.
 
 ## Usage
 
