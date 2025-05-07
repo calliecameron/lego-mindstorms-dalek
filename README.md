@@ -4,15 +4,15 @@ Code for a Lego Mindstorms [Dalek](https://en.wikipedia.org/wiki/Dalek), from [D
 
 [Video!](http://www.youtube.com/watch?v=Li0pRmRHNx0)
 
-![Dalek with normal eye-stalk](dalek1.jpg)
+![Dalek with normal eye-stalk](images/dalek1.jpg)
 
 With a Logitech C270 webcam:
 
-![Dalek with webcam](dalek2.jpg)
+![Dalek with webcam](images/dalek2.jpg)
 
 Taking a selfie in the mirror:
 
-![Dalek mirror selfie](dalek3.jpg)
+![Dalek mirror selfie](images/dalek3.jpg)
 
 ## Installation
 
