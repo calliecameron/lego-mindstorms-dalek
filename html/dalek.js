@@ -194,6 +194,7 @@ $(document).ready(function () {
 
   function SpinnerWidget(parent_id) {
     var parent = $(parent_id)[0];
+    // eslint-disable-next-line no-undef
     var spinner = new Spinner({
       color: "#3d86cb",
       lines: 13,
@@ -377,6 +378,7 @@ $(document).ready(function () {
       }
     });
 
+    // eslint-disable-next-line no-undef
     var joystick_manager = nipplejs.create({
       zone: $("#drive-control")[0],
       restOpacity: 1.0,
@@ -468,7 +470,7 @@ $(document).ready(function () {
   }
 
   function Keyboard(handlers) {
-    connected = false;
+    var connected = false;
 
     $(document).keydown(function (event) {
       if (
@@ -497,7 +499,7 @@ $(document).ready(function () {
       disconnected: function () {
         connected = false;
         for (var key in handlers) {
-          if (handlers.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(handlers, key)) {
             handlers[key].disconnected();
           }
         }
