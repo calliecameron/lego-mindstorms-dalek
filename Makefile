@@ -4,10 +4,11 @@ all: lint
 .PHONY: deps
 deps: .deps-installed
 
-.deps-installed: utils/install_dependencies.sh requirements.txt requirements-dev.txt
+.deps-installed: utils/install_dependencies.sh requirements.txt requirements-dev.txt package.json package-lock.json
 	utils/install_dependencies.sh
 	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
+	npm install
 	touch .deps-installed
 
 requirements.txt: requirements.in pyproject.toml
@@ -33,6 +34,7 @@ clean:
 .PHONY: deepclean
 deepclean: clean
 	rm -f .deps-installed
+	rm -rf node_modules
 	rm -rf html/bootstrap-3.3.7-dist
 	rm -rf html/jquery-3.2.1.min.js
 	rm -rf html/jquery-ui-1.12.1
