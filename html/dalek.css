@@ -1,78 +1,78 @@
 .disconnected-spinner {
-    display: block;
-    height: 220px;
-    position: relative;
+  display: block;
+  height: 220px;
+  position: relative;
 }
 
 .battery-low {
-    color: red;
+  color: red;
 }
 
 .camera-main {
-    display: block;
-    margin: auto;
-    margin-bottom: 20px;
-    width: 360px;
+  display: block;
+  margin: auto;
+  margin-bottom: 20px;
+  width: 360px;
 }
 
 .camera-images {
-    height: 480px;
-    position: relative;
-    width: 360px;
+  height: 480px;
+  position: relative;
+  width: 360px;
 }
 
 .camera-image {
-    height: 480px;
-    position: absolute;
-    width: 360px;
+  height: 480px;
+  position: absolute;
+  width: 360px;
 }
 
 .camera-button {
-    margin-top: 20px;
+  margin-top: 20px;
 }
 
 .control-main {
-    margin: auto;
-    width: 360px;
+  margin: auto;
+  width: 360px;
 }
 
 .head-control {
-    height: 40px;
-    width: 100%;
+  height: 40px;
+  width: 100%;
 }
 
 .head-slider {
-    height: 100%;
-    width: 100%;
+  height: 100%;
+  width: 100%;
 }
 
-.ui-slider .ui-slider-handle{
-    height: 40px;
-    margin-left: -20px;
-    position: absolute;
-    top: -1px;
-    width: 40px;
+.ui-slider .ui-slider-handle {
+  height: 40px;
+  margin-left: -20px;
+  position: absolute;
+  top: -1px;
+  width: 40px;
 }
 
 .drive-control {
-    border-radius: 50%;
-    height:360px;
-    margin-bottom: 20px;
-    margin-top: 20px;
-    position: relative;
-    width: 360px;
+  border-radius: 50%;
+  height: 360px;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  position: relative;
+  width: 360px;
 }
 
 .drive-control-handle {
-    border-radius: 50%;
-    display: block;
-    height: 60px;
-    margin-left: -30px;
-    margin-top: -30px;
-    position: absolute;
-    width: 60px;
+  border-radius: 50%;
+  display: block;
+  height: 60px;
+  margin-left: -30px;
+  margin-top: -30px;
+  position: absolute;
+  width: 60px;
 }
 
 .speech-button {
-    width: 20%;
+  width: 20%;
 }
