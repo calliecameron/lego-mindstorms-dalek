@@ -22,6 +22,7 @@ lint: deps
 	utils/find_shell_files.sh | xargs -d '\n' shellcheck
 	utils/find_shell_files.sh | xargs -d '\n' shfmt -l -d -i 4
 	tidy -config .htmltidy html/index.html
+	npx stylelint '**/*.css'
 	npx eslint .
 	npx prettier --check .
 	ruff check .
