@@ -1,9 +1,9 @@
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["ALL"]
