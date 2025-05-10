@@ -29,7 +29,7 @@ if [ ! -d "${OPENSSL_DIR}" ]; then
     sha256sum -c checksum
     tar xf 'openssl-3.5.0.tar.gz'
     cd 'openssl-3.5.0'
-    ./Configure "--prefix=${OPENSSL_DIR}" "--openssldir=${OPENSSL_DIR}/ssl" --no-docs
+    ./Configure "--prefix=${OPENSSL_DIR}" "--openssldir=${OPENSSL_DIR}/ssl"
     make "-j$(nproc)"
     mkdir "${OPENSSL_DIR}"
     make "-j$(nproc)" install
