@@ -1,3 +1,4 @@
 *.md
+/.mypy_cache/
 /html/nipplejs.js
 /html/spin.js

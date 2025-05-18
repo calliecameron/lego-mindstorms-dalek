@@ -1,5 +1,5 @@
 .PHONY: all
-all: lint
+all: lint test
 
 .PHONY: deps
 deps: .deps-installed
@@ -28,6 +28,10 @@ lint: deps
 	ruff check .
 	ruff format --diff .
 	mypy --strict .
+
+.PHONY: test
+test: deps
+	pytest --cov-report=term-missing --cov=dalek tests
 
 .PHONY: clean
 clean:

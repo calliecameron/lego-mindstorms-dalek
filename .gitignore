@@ -1,4 +1,6 @@
 *~
+__pycache__/
+/.coverage
 /.env
 /.env.leave
 /.deps-installed
