@@ -1,0 +1,6 @@
+class Led:
+    brightness: int
+
+    def __init__(self, name_pattern: str) -> None: ...
+    @property
+    def max_brightness(self) -> int: ...
