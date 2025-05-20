@@ -4,6 +4,9 @@
 #
 #    pip-compile --generate-hashes --strip-extras
 #
+evdev==1.9.2 \
+    --hash=sha256:5d3278892ce1f92a74d6bf888cc8525d9f68af85dbe336c95d1c87fb8f423069
+    # via -r requirements.in
 pillow==11.2.1 \
     --hash=sha256:014ca0050c85003620526b0ac1ac53f56fc93af128f7546623cc8e31875ab928 \
     --hash=sha256:036e53f4170e270ddb8797d4c590e6dd14d28e15c7da375c18978045f7e6c37b \
