@@ -5,7 +5,7 @@ import threading
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum, auto
-from typing import NewType, override
+from typing import NewType, final, override
 
 
 def espeakify(text: str) -> str:
@@ -15,7 +15,9 @@ def espeakify(text: str) -> str:
 
 def sound_filename(text: str) -> str:
     text = text.lower().replace(" ", "-")
-    return "".join(c if re.fullmatch(r"[a-z0-9-]", c) is not None else "" for c in text)
+    return "".join(
+        c if re.fullmatch(r"[a-z0-9-]", c) is not None else "" for c in text
+    )
 
 
 def clamp_control_range(value: float) -> float:
@@ -51,11 +53,20 @@ class Event(ABC):
         raise NotImplementedError
 
 
+@final
 class EventQueue:
-    def __init__(self, *, verbose: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        preprocess: Callable[[], None] | None = None,
+        postprocess: Callable[[], None] | None = None,
+        verbose: bool = False,
+    ) -> None:
         super().__init__()
         self._queue: list[Event] = []
         self._lock = threading.Condition(threading.RLock())
+        self._preprocess_fn = preprocess
+        self._postprocess_fn = postprocess
         self._verbose = verbose
 
     def add(self, *events: Event) -> None:
@@ -83,7 +94,7 @@ class EventQueue:
 
     def process(self) -> None:
         with self._lock:
-            self.pre_process()
+            self._preprocess()
             if self._verbose and self._queue:  # pragma: nocover
                 print(self._queue)
             i = 0
@@ -92,15 +103,17 @@ class EventQueue:
                     i += 1
                 else:
                     del self._queue[i]
-            self.post_process()
+            self._postprocess()
             if not self._queue:
                 self._lock.notify_all()
 
-    def pre_process(self) -> None:  # pragma: nocover
-        pass
+    def _preprocess(self) -> None:
+        if self._preprocess_fn:
+            self._preprocess_fn()
 
-    def post_process(self) -> None:  # pragma: nocover
-        pass
+    def _postprocess(self) -> None:
+        if self._postprocess_fn:
+            self._postprocess_fn()
 
 
 Seconds = NewType("Seconds", float)
@@ -145,8 +158,19 @@ class Timer(Event):
     @override
     def __repr__(self) -> str:  # pragma: nocover
         return (
-            f"Timer: total {self._init_ticks}, remaining {self._ticks}, repeat {self._repeat} "
-            f"[{self._init_start_action}, {self._end_action}]"
+            f"Timer: total {self._init_ticks}, remaining {self._ticks}, repeat "
+            f"{self._repeat} [{self._init_start_action}, {self._end_action}]"
+        )
+
+
+class Immediate(Timer):
+    def __init__(self, action: Callable[[], None]) -> None:
+        super().__init__(
+            time=Seconds(0),
+            tick_length=Seconds(1),
+            repeat=False,
+            start_action=None,
+            end_action=action,
         )
 
 

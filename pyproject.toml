@@ -1,8 +1,9 @@
 [tool.mypy]
+mypy_path = "stubs"
 python_version = "3.13"
 
 [tool.ruff]
-line-length = 100
+line-length = 80
 target-version = "py313"
 
 [tool.ruff.lint]
@@ -10,6 +11,9 @@ select = ["ALL"]
 ignore = [
     "D",
     "PLR0915",
+    "PTH",
+    "S603",
+    "S607",
     "T201",
 ]
 

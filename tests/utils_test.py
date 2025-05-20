@@ -5,6 +5,7 @@ from typing import override
 from dalek.utils import (
     Event,
     EventQueue,
+    Immediate,
     Repeat,
     RunAfterCondition,
     RunAfterTime,
@@ -72,18 +73,15 @@ class TestEventQueue:
         pre_processed = 0
         post_processed = 0
 
-        class FakeEventQueue(EventQueue):
-            @override
-            def pre_process(self) -> None:
-                nonlocal pre_processed
-                pre_processed += 1
+        def preprocess() -> None:
+            nonlocal pre_processed
+            pre_processed += 1
 
-            @override
-            def post_process(self) -> None:
-                nonlocal post_processed
-                post_processed += 1
+        def postprocess() -> None:
+            nonlocal post_processed
+            post_processed += 1
 
-        q = FakeEventQueue()
+        q = EventQueue(preprocess=preprocess, postprocess=postprocess)
         a = FakeEvent("a")
         b = FakeEvent("b")
 
@@ -290,6 +288,25 @@ class TestTimer:
         assert t.process() == Status.IN_PROGRESS
         assert start_calls == 1
         assert end_calls == 2
+
+
+class TestImmediate:
+    def test_immediate(self) -> None:
+        action_calls = 0
+
+        def action() -> None:
+            nonlocal action_calls
+            action_calls += 1
+
+        t = Immediate(action)
+
+        assert action_calls == 0
+
+        assert t.process() == Status.DONE
+        assert action_calls == 1
+
+        assert t.process() == Status.DONE
+        assert action_calls == 1
 
 
 class TestRunAfterTime:
