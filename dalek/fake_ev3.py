@@ -1,93 +1,79 @@
-"""Fake versions of some ev3dev classes, so the networking code can be tested
-without having the real ev3 to hand."""
-
-import time
-import subprocess
+"""Fake versions of some ev3dev classes, for testing."""
 
 
-class Motor(object):
-    def __init__(self, port, mtype):
-        super(Motor, self).__init__()
-        self.port = port
-        self.mtype = mtype
-        self.speed_regulation_enabled = "off"
-        self.stop_command = "coast"
-        self.speed_sp = 0
-        self.position = 0
-        self.ramp_up_sp = 0
-        self.ramp_down_sp = 0
+class Motor:
+    def __init__(self, address: str) -> None:
+        super().__init__()
+        self._address = address
+        self.stop_action = "coast"
+        self.position = 0.0
+        self.speed_sp = 0.0
+        self.ramp_up_sp = 0.0
+        self.ramp_down_sp = 0.0
 
-    def stop(self):
-        self.msg("stop")
+    def reset(self) -> None:
+        self._msg("reset")
 
-    def run_forever(self):
-        self.msg("run_forever")
+    def stop(self) -> None:
+        self._msg("stop")
 
-    def reset(self):
-        self.msg("reset")
+    def run_forever(self) -> None:
+        self._msg("run_forever")
 
-    def msg(self, s):
-        print "[%sMotor %s] %s" % (self.mtype, self.port, s)
+    def _msg(self, s: str) -> None:
+        print(f"[{self.__class__.__name__} {self._address}] {s}")
 
 
 class LargeMotor(Motor):
-    def __init__(self, port):
-        super(LargeMotor, self).__init__(port, "Large")
+    pass
 
 
 class MediumMotor(Motor):
-    def __init__(self, port):
-        super(MediumMotor, self).__init__(port, "Medium")
+    pass
 
 
-class TouchSensor(object):
-    def __init__(self, port):
-        super(TouchSensor, self).__init__()
-        self.port = port
+class TouchSensor:
+    def __init__(self, address: str) -> None:
+        super().__init__()
+        self._address = address
 
-    def value(self):
-        return 0
-
-
-class PowerSupply(object):
-    def __init__(self):
-        super(PowerSupply, self).__init__()
-        self.measured_volts = 8
+    def is_pressed(self) -> bool:
+        return False
 
 
-class Leds(object):
-    def __init__(self, port):
-        super(Leds, self).__init__()
-        time.sleep(1)
-        self.port = port
-        self.brightness = 0
-        self.off()
-        print "Created LEDs"
+class PowerSupply:
+    def __init__(self) -> None:
+        super().__init__()
 
-    def get_brightness(self):
-        return self.brightness
+    @property
+    def measured_volts(self) -> float:
+        return 8.0
 
-    def set_brightness(self, brightness):
-        brightness = int(brightness)
-        if brightness < 0:
-            brightness = 0
-        elif brightness > 100:
-            brightness = 100
-        self.brightness = brightness
-        print "[LEDs %s] brightness %d" % (self.port, self.brightness)
-        if self.brightness > 0:
-            subprocess.call(["xset", "led", "named", "Scroll Lock"])
-        else:
-            subprocess.call(["xset", "-led", "named", "Scroll Lock"])
 
-    def on(self):
-        self.set_brightness(100)
+class LegoPort:
+    def __init__(self, address: str) -> None:
+        super().__init__()
+        self._address = address
+        self.mode = "auto"
 
-    def off(self):
-        self.set_brightness(0)
 
-    def toggle(self):
-        if self.get_brightness() > 0:
-            self.off()
-        else:
-            self.on()
+class Led:
+    _MAX_BRIGHTNESS = 100
+
+    def __init__(self, name_pattern: str) -> None:
+        super().__init__()
+        self._name_pattern = name_pattern
+        self._brightness = 0
+
+    @property
+    def max_brightness(self) -> int:
+        return self._MAX_BRIGHTNESS
+
+    @property
+    def brightness(self) -> int:
+        return self._brightness
+
+    @brightness.setter
+    def brightness(self, b: int) -> None:
+        self._brightness = min(max(0, b), self._MAX_BRIGHTNESS)
+        print(f"[LEDs {self._name_pattern}] brightness {self._brightness}")
