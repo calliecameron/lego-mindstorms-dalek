@@ -96,7 +96,7 @@ class EventQueue:
         with self._lock:
             self._preprocess()
             if self._verbose and self._queue:  # pragma: nocover
-                print(self._queue)
+                print(f"DEBUG: {self._queue}")
             i = 0
             while i < len(self._queue):
                 if self._queue[i].process() == Status.IN_PROGRESS:
