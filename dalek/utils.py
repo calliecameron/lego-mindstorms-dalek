@@ -1,11 +1,14 @@
 """Utilities."""
 
+import os
 import re
 import threading
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum, auto
 from typing import NewType, final, override
+
+_VERBOSE = bool(os.getenv("EVENT_QUEUE_VERBOSE"))
 
 
 def espeakify(text: str) -> str:
@@ -60,14 +63,12 @@ class EventQueue:
         *,
         preprocess: Callable[[], None] | None = None,
         postprocess: Callable[[], None] | None = None,
-        verbose: bool = False,
     ) -> None:
         super().__init__()
         self._queue: list[Event] = []
         self._lock = threading.Condition(threading.RLock())
         self._preprocess_fn = preprocess
         self._postprocess_fn = postprocess
-        self._verbose = verbose
 
     def add(self, *events: Event) -> None:
         with self._lock:
@@ -95,7 +96,7 @@ class EventQueue:
     def process(self) -> None:
         with self._lock:
             self._preprocess()
-            if self._verbose and self._queue:  # pragma: nocover
+            if _VERBOSE and self._queue:  # pragma: nocover
                 print(f"DEBUG: {self._queue}")
             i = 0
             while i < len(self._queue):
