@@ -52,7 +52,7 @@ class Status(Enum):
 
 class Event(ABC):
     @abstractmethod
-    def process(self) -> Status:  # pragma: nocover
+    def process(self) -> Status:  # pragma: no cover
         raise NotImplementedError
 
 
@@ -96,7 +96,7 @@ class EventQueue:
     def process(self) -> None:
         with self._lock:
             self._preprocess()
-            if _VERBOSE and self._queue:  # pragma: nocover
+            if _VERBOSE and self._queue:  # pragma: no cover
                 print(f"DEBUG: {self._queue}")
             i = 0
             while i < len(self._queue):
@@ -157,7 +157,7 @@ class Timer(Event):
         return Status.IN_PROGRESS
 
     @override
-    def __repr__(self) -> str:  # pragma: nocover
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"Timer: total {self._init_ticks}, remaining {self._ticks}, repeat "
             f"{self._repeat} [{self._init_start_action}, {self._end_action}]"
@@ -230,5 +230,5 @@ class RunAfterCondition(Event):
         return Status.IN_PROGRESS
 
     @override
-    def __repr__(self) -> str:  # pragma: nocover
+    def __repr__(self) -> str:  # pragma: no cover
         return f"RunAfterCondition [{self._condition}, {self._action}]"

@@ -18,6 +18,12 @@ ignore = [
     "T201",
 ]
 
+[tool.coverage.run]
+omit = [
+    "dalek/ev3.py",
+    "dalek/fake_ev3.py",
+]
+
 [tool.pip-tools]
 generate-hashes = true
 strip-extras = true

@@ -1,3 +1,5 @@
+"""Shims for selecting between real and fake ev3 classes."""
+
 from typing import Protocol
 
 import ev3dev2.led
