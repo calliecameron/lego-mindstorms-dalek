@@ -10,6 +10,7 @@ target-version = "py313"
 select = ["ALL"]
 ignore = [
     "D",
+    "E741",
     "PLR0915",
     "PTH",
     "S603",
