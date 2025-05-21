@@ -1,5 +1,9 @@
 """Fake versions of some ev3dev classes, for testing."""
 
+import logging
+
+_LOG = logging.getLogger(__name__)
+
 
 class Motor:
     def __init__(self, address: str) -> None:
@@ -21,7 +25,7 @@ class Motor:
         self._msg("run_forever")
 
     def _msg(self, s: str) -> None:
-        print(f"FAKE: [{self.__class__.__name__} {self._address}] {s}")
+        _LOG.info(f"[{self.__class__.__name__} {self._address}] {s}")
 
 
 class LargeMotor(Motor):
@@ -76,6 +80,6 @@ class Led:
     @brightness.setter
     def brightness(self, b: int) -> None:
         self._brightness = min(max(0, b), self._MAX_BRIGHTNESS)
-        print(
-            f"FAKE: [LEDs {self._name_pattern}] brightness {self._brightness}",
+        _LOG.info(
+            f"[LEDs {self._name_pattern}] brightness {self._brightness}",
         )

@@ -1,5 +1,6 @@
 """Utilities."""
 
+import logging
 import os
 import re
 import threading
@@ -8,6 +9,7 @@ from collections.abc import Callable
 from enum import Enum, auto
 from typing import NewType, final, override
 
+_LOG = logging.getLogger(__name__)
 _VERBOSE = bool(os.getenv("EVENT_QUEUE_VERBOSE"))
 
 
@@ -97,7 +99,7 @@ class EventQueue:
         with self._lock:
             self._preprocess()
             if _VERBOSE and self._queue:  # pragma: no cover
-                print(f"DEBUG: {self._queue}")
+                _LOG.info(f"{self._queue}")
             i = 0
             while i < len(self._queue):
                 if self._queue[i].process() == Status.IN_PROGRESS:

@@ -1,5 +1,6 @@
 """Main logic for the Dalek."""
 
+import logging
 import os
 import os.path
 import subprocess
@@ -33,6 +34,8 @@ PLUNGER_PORT = INPUT_2
 
 TICK_LENGTH = Seconds(0.1)
 
+_LOG = logging.getLogger(__name__)
+
 
 class Leds:
     def __init__(self) -> None:
@@ -46,7 +49,7 @@ class Leds:
 
         self._led = ev3.led(port + "::brick-status")
         self.off()
-        print("DALEK: created LEDs")
+        _LOG.info("created LEDs")
 
     def on(self) -> None:
         self._led.brightness = self._led.max_brightness
@@ -79,7 +82,7 @@ class Voice:
         self._text_to_speech_command = text_to_speech_command
         self._leds = leds
         self._subprocess: subprocess.Popen[bytes] | None = None
-        print("DALEK: created voice")
+        _LOG.info("created voice")
 
     def process(self) -> None:
         self._queue.process()
@@ -173,7 +176,7 @@ class Camera:
         self._snapshot_handler: Callable[[str], None] | None = None
         self._output_file = output_file
         self._subprocess: subprocess.Popen[bytes] | None = None
-        print("DALEK: created camera")
+        _LOG.info("created camera")
 
     def process(self) -> None:
         self._queue.process()
@@ -232,7 +235,7 @@ class Battery:
         self._queue.add(
             Repeat(time=Seconds(10), action=handle, tick_length=TICK_LENGTH),
         )
-        print("DALEK: created battery")
+        _LOG.info("created battery")
 
     def process(self) -> None:
         self._queue.process()
@@ -303,7 +306,7 @@ class Drive:
         self._drive_control = TwoWayControl()
         self._turn_control = TwoWayControl()
         self._ticks_since_last = 0
-        print("DALEK: created drive")
+        _LOG.info("created drive")
 
     def _update_wheel_speeds(self) -> None:
         def set_wheel_speed(wheel: ev3.LargeMotor, speed: float) -> None:
@@ -392,7 +395,7 @@ class Head:
         self._voice = voice
         self._motor = ev3.medium_motor(HEAD_PORT)
         self._control = TwoWayControl()
-        print("DALEK: created head")
+        _LOG.info("created head")
 
     def calibrate(self) -> None:
         try:
@@ -474,7 +477,7 @@ class ControllerThread(threading.Thread):
         self._daemon = True
         self._alive = True
         self._lock = threading.Lock()
-        print("DALEK: created controller thread")
+        _LOG.info("created controller thread")
 
     def is_alive(self) -> bool:
         with self._lock:
@@ -514,7 +517,7 @@ class Dalek:
         self.thread = ControllerThread(self)
         self.thread.start()
         self.head.calibrate()
-        print("DALEK: ready")
+        _LOG.info("ready")
 
     def shutdown(self) -> None:
         self.head.shutdown()
