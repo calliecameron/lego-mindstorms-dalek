@@ -9,8 +9,10 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "C",
     "D",
     "E741",
+    "PLR0912",
     "PLR0915",
     "PTH",
     "S603",

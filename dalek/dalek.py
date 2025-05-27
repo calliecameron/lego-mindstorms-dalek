@@ -6,7 +6,10 @@ import os.path
 import subprocess
 import threading
 import time
+from abc import ABC, abstractmethod
 from collections.abc import Callable
+from types import TracebackType
+from typing import Self, override
 
 from ev3dev2.motor import OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, Motor
 from ev3dev2.sensor import INPUT_2
@@ -26,20 +29,20 @@ from dalek.utils import (
     sound_filename,
 )
 
-LEFT_WHEEL_PORT = OUTPUT_D
-RIGHT_WHEEL_PORT = OUTPUT_A
-HEAD_PORT = OUTPUT_B
-LED_PORT = OUTPUT_C
-PLUNGER_PORT = INPUT_2
+_LEFT_WHEEL_PORT = OUTPUT_D
+_RIGHT_WHEEL_PORT = OUTPUT_A
+_HEAD_PORT = OUTPUT_B
+_LED_PORT = OUTPUT_C
+_PLUNGER_PORT = INPUT_2
 
-TICK_LENGTH = Seconds(0.1)
+_TICK_LENGTH = Seconds(0.1)
 
-_LOG = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
-class Leds:
+class _Leds:
     def __init__(self) -> None:
-        port = LED_PORT
+        port = _LED_PORT
         ev3.lego_port(port).mode = "led"
 
         # Give the system time to set up the changes
@@ -49,7 +52,7 @@ class Leds:
 
         self._led = ev3.led(port + "::brick-status")
         self.off()
-        _LOG.info("created LEDs")
+        _log.info("created LEDs")
 
     def on(self) -> None:
         self._led.brightness = self._led.max_brightness
@@ -64,7 +67,29 @@ class Leds:
             self.on()
 
 
-class Voice:
+class _Actor(ABC):
+    def __init__(
+        self,
+        *,
+        preprocess: Callable[[], None] | None = None,
+        postprocess: Callable[[], None] | None = None,
+    ) -> None:
+        super().__init__()
+        self._queue = EventQueue(
+            name=self.__class__.__name__,
+            preprocess=preprocess,
+            postprocess=postprocess,
+        )
+
+    def process(self) -> None:
+        self._queue.process()
+
+    @abstractmethod
+    def disconnect(self) -> None:
+        raise NotImplementedError
+
+
+class _Voice(_Actor):
     EXTERMINATE = "Exterminate"
     GUN = "Gun"
     COMMENCE_AWAKENING = "Commence awakening"
@@ -74,34 +99,15 @@ class Voice:
         self,
         sound_dir: str,
         text_to_speech_command: str,
-        leds: Leds,
+        leds: _Leds,
     ) -> None:
         super().__init__()
-        self._queue = EventQueue()
         self._sound_dir = sound_dir
         self._text_to_speech_command = text_to_speech_command
         self._leds = leds
+        self._lock = threading.Lock()
         self._subprocess: subprocess.Popen[bytes] | None = None
-        _LOG.info("created voice")
-
-    def process(self) -> None:
-        self._queue.process()
-
-    def stop(self) -> None:
-        if self._subprocess:
-            self._leds.off()
-            self._queue.clear()
-            self._subprocess.kill()
-            self._subprocess.wait()
-            self._subprocess = None
-
-    def wait(self) -> None:
-        if self._subprocess:
-            self._subprocess.wait()
-            self._subprocess = None
-
-    def wait_until_empty(self) -> None:
-        self._queue.wait_until_empty()
+        _log.info("created voice")
 
     def _setup_lights_actions(self, sound: str) -> None:
         path = os.path.join(self._sound_dir, sound + ".txt")
@@ -117,7 +123,7 @@ class Voice:
                 self._queue.add(
                     Timer(
                         time=Seconds(end - start),
-                        tick_length=TICK_LENGTH,
+                        tick_length=_TICK_LENGTH,
                         repeat=False,
                         start_action=lights_on_action,
                         end_action=lights_off_action,
@@ -126,10 +132,9 @@ class Voice:
 
             return action
 
-        if os.path.exists(path):
-            l: list[Seconds] = []
+        try:
             with open(path) as f:
-                l.extend(Seconds(float(line.strip())) for line in f)
+                l = [Seconds(float(line.strip())) for line in f]
 
             if len(l) % 2 == 0:
                 i = 0
@@ -139,11 +144,13 @@ class Voice:
                     self._queue.add(
                         RunAfterTime(
                             time=start,
-                            tick_length=TICK_LENGTH,
+                            tick_length=_TICK_LENGTH,
                             action=flash(start, end),
                         ),
                     )
                     i += 2
+        except OSError as e:
+            _log.error(f"failed to read light file for '{sound}': {e}")
 
     def speak(self, text: str) -> None:
         self.stop()
@@ -153,107 +160,144 @@ class Voice:
         filename = sound_filename(text)
         path = os.path.join(self._sound_dir, filename + ".wav")
 
-        if os.path.exists(path):
-            self._subprocess = subprocess.Popen(
-                ["aplay", path],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            self._setup_lights_actions(filename)
-        else:
-            self._subprocess = subprocess.Popen(
-                [self._text_to_speech_command, espeakify(text)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+        with self._lock:
+            if os.path.exists(path):
+                self._subprocess = subprocess.Popen(
+                    ["aplay", path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self._setup_lights_actions(filename)
+            else:
+                self._subprocess = subprocess.Popen(
+                    [self._text_to_speech_command, espeakify(text)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
 
-
-class Camera:
-    def __init__(self, snapshot_command: str, output_file: str) -> None:
-        super().__init__()
-        self._queue = EventQueue()
-        self._snapshot_command = snapshot_command
-        self._snapshot_handler: Callable[[str], None] | None = None
-        self._output_file = output_file
-        self._subprocess: subprocess.Popen[bytes] | None = None
-        _LOG.info("created camera")
-
-    def process(self) -> None:
-        self._queue.process()
-
-    def has_camera(self) -> bool:
-        return os.path.exists("/dev/video0")
-
-    def register_handler(self, h: Callable[[str], None]) -> None:
-        self._snapshot_handler = h
-
-    def clear_handler(self) -> None:
-        self._snapshot_handler = None
-
-    def take_snapshot(self) -> None:
-        def action() -> None:
-            self._subprocess = subprocess.Popen(
-                [self._snapshot_command, self._output_file],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-
-        def is_idle() -> bool:
-            if not self._subprocess:
-                return True
-
-            if self._subprocess.poll() is not None:
+    def stop(self) -> None:
+        with self._lock:
+            self._leds.off()
+            self._queue.clear()
+            if self._subprocess:
+                self._subprocess.kill()
                 self._subprocess.wait()
                 self._subprocess = None
-                return True
 
-            return False
+    def wait(self) -> None:
+        with self._lock:
+            if self._subprocess:
+                self._subprocess.wait()
+                self._subprocess = None
+
+    @override
+    def disconnect(self) -> None:
+        self.wait()
+        self.stop()
+
+
+class _Camera(_Actor):
+    def __init__(self, take_picture_command: str, output_file: str) -> None:
+        super().__init__()
+        self._take_picture_command = take_picture_command
+        self._output_file = output_file
+        self._lock = threading.Lock()
+        self._handler: Callable[[bytes], None] | None = None
+        self._subprocess: subprocess.Popen[bytes] | None = None
+        _log.info(f"created camera; camera found = {self._has_camera()}")
+
+    def _has_camera(self) -> bool:
+        return os.path.exists("/dev/video0")
+
+    def set_handler(self, h: Callable[[bytes], None]) -> None:
+        with self._lock:
+            self._handler = h
+
+    def take_picture(self) -> None:
+        def action() -> None:
+            with self._lock:
+                self._subprocess = subprocess.Popen(
+                    [self._take_picture_command, self._output_file],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+        def is_idle() -> bool:
+            with self._lock:
+                if not self._subprocess:
+                    return True
+
+                if self._subprocess.poll() is not None:
+                    self._subprocess.wait()
+                    self._subprocess = None
+                    return True
+
+                return False
 
         def cleanup() -> None:
-            if self._snapshot_handler:
-                with open(self._output_file) as f:
-                    self._snapshot_handler(f.read())
+            with self._lock:
+                if self._handler:
+                    try:
+                        with open(self._output_file, mode="rb") as f:
+                            self._handler(f.read())
+                    except OSError as e:
+                        _log.error(f"failed to take picture: {e}")
 
-        if self.has_camera():
+        if self._has_camera():
             self._queue.add_if_empty(
                 Immediate(action),
                 RunAfterCondition(condition=is_idle, action=cleanup),
             )
+        else:
+            _log.info("no camera found")
 
-
-class Battery:
-    def __init__(self) -> None:
-        super().__init__()
-        self._queue = EventQueue()
-        self._power_supply = ev3.power_supply()
-        self._battery_handler: Callable[[str], None] | None = None
-
-        def handle() -> None:
-            if self._battery_handler:
-                self._battery_handler(self._get_battery_status())
-
-        self._queue.add(
-            Repeat(time=Seconds(10), action=handle, tick_length=TICK_LENGTH),
-        )
-        _LOG.info("created battery")
-
-    def process(self) -> None:
-        self._queue.process()
-
-    def _get_battery_status(self) -> str:
-        return f"{self._power_supply.measured_volts:.2f}"
-
-    def register_handler(self, h: Callable[[str], None]) -> None:
-        self._battery_handler = h
-
-    def clear_handler(self) -> None:
-        self._battery_handler = None
-
-    def shutdown(self) -> None:
+    @override
+    def disconnect(self) -> None:
+        with self._lock:
+            if self._subprocess:
+                self._subprocess.kill()
+                self._subprocess.wait()
+                self._subprocess = None
+            self._handler = None
         self._queue.clear()
 
 
-class TwoWayControl:
+class _Battery(_Actor):
+    def __init__(self) -> None:
+        super().__init__()
+        self._power_supply = ev3.power_supply()
+        self._lock = threading.Lock()
+        self._handler: Callable[[str], None] | None = None
+        _log.info("created battery")
+
+    def status(self) -> str:
+        return f"{self._power_supply.measured_volts:.2f}"
+
+    def set_handler(self, h: Callable[[str], None]) -> None:
+        with self._lock:
+            self._handler = h
+
+        def handle() -> None:
+            with self._lock:
+                if self._handler:
+                    self._handler(self.status())
+
+        self._queue.add(
+            Repeat(
+                time=Seconds(10),
+                action=handle,
+                tick_length=_TICK_LENGTH,
+            ),
+        )
+
+    @override
+    def disconnect(self) -> None:
+        with self._lock:
+            self._handler = None
+        self._queue.clear()
+
+
+class _TwoWayControl:
     def __init__(self) -> None:
         super().__init__()
         self._value = 0.0
@@ -273,26 +317,25 @@ class TwoWayControl:
             self.off()
 
 
-class Drive:
+class _Drive(_Actor):
     _DRIVE_SPEED = -700
     _TURN_SPEED = -500
 
     def __init__(self) -> None:
-        super().__init__()
-
         def preprocess() -> None:
             if self._touch_sensor.is_pressed():
-                self.shutdown()
-            self._ticks_since_last += 1
+                self.stop()
+            else:
+                with self._lock:
+                    self._ticks_since_last += 1
 
-        def post_process() -> None:
-            if self._ticks_since_last > 75:  # noqa: PLR2004
-                self.shutdown()
+        def postprocess() -> None:
+            with self._lock:
+                ticks_since_last = self._ticks_since_last
+            if ticks_since_last > 75:  # noqa: PLR2004
+                self.stop()
 
-        self._queue = EventQueue(
-            preprocess=preprocess,
-            postprocess=post_process,
-        )
+        super().__init__(preprocess=preprocess, postprocess=postprocess)
 
         def init_wheel(port: str) -> ev3.LargeMotor:
             wheel = ev3.large_motor(port)
@@ -300,13 +343,14 @@ class Drive:
             wheel.stop_action = Motor.STOP_ACTION_COAST
             return wheel
 
-        self._left_wheel = init_wheel(LEFT_WHEEL_PORT)
-        self._right_wheel = init_wheel(RIGHT_WHEEL_PORT)
-        self._touch_sensor = ev3.touch_sensor(PLUNGER_PORT)
-        self._drive_control = TwoWayControl()
-        self._turn_control = TwoWayControl()
+        self._left_wheel = init_wheel(_LEFT_WHEEL_PORT)
+        self._right_wheel = init_wheel(_RIGHT_WHEEL_PORT)
+        self._touch_sensor = ev3.touch_sensor(_PLUNGER_PORT)
+        self._drive_control = _TwoWayControl()
+        self._turn_control = _TwoWayControl()
+        self._lock = threading.Lock()
         self._ticks_since_last = 0
-        _LOG.info("created drive")
+        _log.info("created drive")
 
     def _update_wheel_speeds(self) -> None:
         def set_wheel_speed(wheel: ev3.LargeMotor, speed: float) -> None:
@@ -324,39 +368,29 @@ class Drive:
 
     def _control_press_action(
         self,
-        control: TwoWayControl,
+        control: _TwoWayControl,
         value: float,
     ) -> Immediate:
         def action() -> None:
             control.press(value)
             self._update_wheel_speeds()
-            self._ticks_since_last = 0
+            with self._lock:
+                self._ticks_since_last = 0
 
         return Immediate(action)
 
     def _control_release_action(
         self,
-        control: TwoWayControl,
+        control: _TwoWayControl,
         value: float,
     ) -> Immediate:
         def action() -> None:
             control.release(value)
             self._update_wheel_speeds()
-            self._ticks_since_last = 0
+            with self._lock:
+                self._ticks_since_last = 0
 
         return Immediate(action)
-
-    def _stop_action(self) -> Immediate:
-        def action() -> None:
-            self._drive_control.off()
-            self._turn_control.off()
-            self._update_wheel_speeds()
-            self._ticks_since_last = 0
-
-        return Immediate(action)
-
-    def process(self) -> None:
-        self._queue.process()
 
     def drive(self, value: float) -> None:
         self._queue.add(self._control_press_action(self._drive_control, value))
@@ -373,49 +407,47 @@ class Drive:
         self._queue.add(self._control_release_action(self._turn_control, value))
 
     def stop(self) -> None:
-        self._queue.add(self._stop_action())
-
-    def shutdown(self) -> None:
         self._queue.clear()
-        self._stop_action().process()
+        self._drive_control.off()
+        self._turn_control.off()
+        self._update_wheel_speeds()
+        with self._lock:
+            self._ticks_since_last = 0
+
+    @override
+    def disconnect(self) -> None:
+        self.stop()
 
 
-class Head:
+class Head(_Actor):
     _HEAD_LIMIT = 320
     _HEAD_SPEED = 300
 
-    def __init__(self, voice: Voice) -> None:
-        super().__init__()
-
+    def __init__(self) -> None:
         def preprocess() -> None:
             if self._position_out_of_bounds():
-                self.shutdown()
+                self.stop()
 
-        self._queue = EventQueue(preprocess=preprocess)
-        self._voice = voice
-        self._motor = ev3.medium_motor(HEAD_PORT)
-        self._control = TwoWayControl()
-        _LOG.info("created head")
+        super().__init__(preprocess=preprocess)
 
-    def calibrate(self) -> None:
-        try:
-            self._voice.speak(Voice.COMMENCE_AWAKENING)
-            self._voice.wait()
+        self._motor = ev3.medium_motor(_HEAD_PORT)
+        self._control = _TwoWayControl()
+        self._calibrate()
+        _log.info("created head")
 
-            self._motor.reset()
+    def _calibrate(self) -> None:
+        self._motor.reset()
+        self._motor.position = 0
+        self._motor.stop_action = Motor.STOP_ACTION_BRAKE
+        self._motor.ramp_up_sp = 0
+        self._motor.ramp_down_sp = 0
 
-            self._motor.position = 0
-            self._motor.stop_action = Motor.STOP_ACTION_BRAKE
-            self._motor.ramp_up_sp = 0
-            self._motor.ramp_down_sp = 0
-
-            time.sleep(1)
-            self._voice.speak(Voice.EXTERMINATE)
-            self._voice.wait()
-
-        except:
-            self.shutdown()
-            raise
+    def _position_out_of_bounds(self) -> bool:
+        return (
+            self._control.value > 0 and self._motor.position > self._HEAD_LIMIT
+        ) or (
+            self._control.value < 0 and self._motor.position < -self._HEAD_LIMIT
+        )
 
     def _update_motor_speed(self) -> None:
         speed = self._control.value * self._HEAD_SPEED
@@ -424,13 +456,6 @@ class Head:
             self._motor.stop()
         else:
             self._motor.run_forever()
-
-    def _stop_action(self) -> Immediate:
-        def action() -> None:
-            self._control.off()
-            self._update_motor_speed()
-
-        return Immediate(action)
 
     def _control_press_action(self, value: float) -> Immediate:
         def action() -> None:
@@ -446,55 +471,43 @@ class Head:
 
         return Immediate(action)
 
-    def _position_out_of_bounds(self) -> bool:
-        return (
-            self._control.value > 0 and self._motor.position > self._HEAD_LIMIT
-        ) or (
-            self._control.value < 0 and self._motor.position < -self._HEAD_LIMIT
-        )
-
-    def process(self) -> None:
-        self._queue.process()
-
-    def stop(self) -> None:
-        self._queue.replace(self._stop_action())
-
     def turn(self, value: float) -> None:
         self._queue.add(self._control_press_action(value))
 
     def turn_release(self, value: float) -> None:
         self._queue.add(self._control_release_action(value))
 
-    def shutdown(self) -> None:
+    def stop(self) -> None:
         self._queue.clear()
-        self._stop_action().process()
+        self._control.off()
+        self._update_motor_speed()
+
+    @override
+    def disconnect(self) -> None:
+        self.stop()
 
 
 class ControllerThread(threading.Thread):
-    def __init__(self, parent: "Dalek") -> None:
+    def __init__(self, action: Callable[[], None]) -> None:
         super().__init__()
-        self._parent = parent
+        self._action = action
         self._daemon = True
         self._alive = True
         self._lock = threading.Lock()
-        _LOG.info("created controller thread")
+        _log.info("created controller thread")
 
     def is_alive(self) -> bool:
         with self._lock:
             return self._alive
 
-    def shutdown(self) -> None:
+    def stop(self) -> None:
         with self._lock:
             self._alive = False
 
     def run(self) -> None:
         while self.is_alive():
-            self._parent.drive.process()
-            self._parent.head.process()
-            self._parent.voice.process()
-            self._parent.camera.process()
-            self._parent.battery.process()
-            time.sleep(TICK_LENGTH)
+            self._action()
+            time.sleep(_TICK_LENGTH)
 
 
 class Dalek:
@@ -504,29 +517,105 @@ class Dalek:
         self,
         sound_dir: str,
         text_to_speech_command: str,
-        snapshot_command: str,
-        snapshot_file: str,
+        take_picture_command: str,
+        camera_output_file: str,
     ) -> None:
         super().__init__()
-        self.leds = Leds()
-        self.voice = Voice(sound_dir, text_to_speech_command, self.leds)
-        self.camera = Camera(snapshot_command, snapshot_file)
-        self.battery = Battery()
-        self.drive = Drive()
-        self.head = Head(self.voice)
-        self.thread = ControllerThread(self)
-        self.thread.start()
-        self.head.calibrate()
-        _LOG.info("ready")
 
-    def shutdown(self) -> None:
-        self.head.shutdown()
-        self.drive.shutdown()
-        self.battery.shutdown()
-        self.voice.stop()
-        self.voice.speak(Voice.STATUS_HIBERNATION)
-        self.voice.wait()
-        self.voice.wait_until_empty()
-        self.voice.stop()
-        self.thread.shutdown()
-        self.thread.join()
+        self._leds = _Leds()
+        self._voice = _Voice(
+            sound_dir,
+            text_to_speech_command,
+            self._leds,
+        )
+        self._camera = _Camera(
+            take_picture_command,
+            camera_output_file,
+        )
+        self._battery = _Battery()
+        self._drive = _Drive()
+        self._head = Head()
+
+        self._actors = [
+            self._voice,
+            self._camera,
+            self._battery,
+            self._drive,
+            self._head,
+        ]
+
+    def __enter__(self) -> Self:
+        def process() -> None:
+            for actor in self._actors:
+                actor.process()
+
+        self._thread = ControllerThread(process)
+        self._thread.start()
+
+        self._voice.speak(_Voice.COMMENCE_AWAKENING)
+        self._voice.wait()
+        time.sleep(1)
+        self._voice.speak(_Voice.EXTERMINATE)
+        self._voice.wait()
+
+        _log.info("ready")
+        return self
+
+    def disconnect(self) -> None:
+        for actor in self._actors:
+            actor.disconnect()
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.disconnect()
+        self._voice.speak(_Voice.STATUS_HIBERNATION)
+        self._voice.disconnect()
+        self._thread.stop()
+        self._thread.join()
+
+    def drive(self, value: float) -> None:
+        self._drive.drive(value)
+
+    def drive_release(self, value: float) -> None:
+        self._drive.drive_release(value)
+
+    def turn(self, value: float) -> None:
+        self._drive.turn(value)
+
+    def turn_release(self, value: float) -> None:
+        self._drive.turn_release(value)
+
+    def head_turn(self, value: float) -> None:
+        self._head.turn(value)
+
+    def head_turn_release(self, value: float) -> None:
+        self._head.turn_release(value)
+
+    def stop_moving(self) -> None:
+        self._drive.stop()
+        self._head.stop()
+
+    def toggle_lights(self) -> None:
+        self._leds.toggle()
+
+    def speak(self, text: str) -> None:
+        self._voice.speak(text)
+
+    def stop_speaking(self) -> None:
+        self._voice.stop()
+
+    def set_camera_handler(self, h: Callable[[bytes], None]) -> None:
+        self._camera.set_handler(h)
+
+    def take_picture(self) -> None:
+        self._camera.take_picture()
+
+    def battery_status(self) -> str:
+        return self._battery.status()
+
+    def set_battery_handler(self, h: Callable[[str], None]) -> None:
+        self._battery.set_handler(h)

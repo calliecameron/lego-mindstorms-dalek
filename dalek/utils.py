@@ -63,10 +63,12 @@ class EventQueue:
     def __init__(
         self,
         *,
+        name: str = "unnamed",
         preprocess: Callable[[], None] | None = None,
         postprocess: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
+        self._name = name
         self._queue: list[Event] = []
         self._lock = threading.Condition(threading.RLock())
         self._preprocess_fn = preprocess
@@ -99,7 +101,7 @@ class EventQueue:
         with self._lock:
             self._preprocess()
             if _VERBOSE and self._queue:  # pragma: no cover
-                _LOG.info(f"{self._queue}")
+                _LOG.info(f"{self._name} {self._queue}")
             i = 0
             while i < len(self._queue):
                 if self._queue[i].process() == Status.IN_PROGRESS:
