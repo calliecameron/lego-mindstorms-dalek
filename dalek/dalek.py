@@ -1,28 +1,21 @@
 """Main logic for the Dalek."""
 
+import asyncio
 import logging
 import os
 import os.path
-import subprocess
-import threading
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from types import TracebackType
 from typing import Self, override
 
+import aiofiles
 from ev3dev2.motor import OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, Motor
 from ev3dev2.sensor import INPUT_2
 
 from dalek import ev3
 from dalek.utils import (
-    EventQueue,
-    Immediate,
-    Repeat,
-    RunAfterCondition,
-    RunAfterTime,
-    Seconds,
-    Timer,
     clamp_control_range,
     espeakify,
     sign,
@@ -34,8 +27,6 @@ _RIGHT_WHEEL_PORT = OUTPUT_A
 _HEAD_PORT = OUTPUT_B
 _LED_PORT = OUTPUT_C
 _PLUNGER_PORT = INPUT_2
-
-_TICK_LENGTH = Seconds(0.1)
 
 _log = logging.getLogger(__name__)
 
@@ -68,24 +59,8 @@ class _Leds:
 
 
 class _Actor(ABC):
-    def __init__(
-        self,
-        *,
-        preprocess: Callable[[], None] | None = None,
-        postprocess: Callable[[], None] | None = None,
-    ) -> None:
-        super().__init__()
-        self._queue = EventQueue(
-            name=self.__class__.__name__,
-            preprocess=preprocess,
-            postprocess=postprocess,
-        )
-
-    def process(self) -> None:
-        self._queue.process()
-
     @abstractmethod
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         raise NotImplementedError
 
 
@@ -105,95 +80,83 @@ class _Voice(_Actor):
         self._sound_dir = sound_dir
         self._text_to_speech_command = text_to_speech_command
         self._leds = leds
-        self._lock = threading.Lock()
-        self._subprocess: subprocess.Popen[bytes] | None = None
+        self._task: asyncio.Task[None] | None = None
         _log.info("created voice")
 
-    def _setup_lights_actions(self, sound: str) -> None:
+    async def _flash_lights(self, sound: str) -> None:
         path = os.path.join(self._sound_dir, sound + ".txt")
 
-        def lights_on_action() -> None:
-            self._leds.on()
-
-        def lights_off_action() -> None:
-            self._leds.off()
-
-        def flash(start: Seconds, end: Seconds) -> Callable[[], None]:
-            def action() -> None:
-                self._queue.add(
-                    Timer(
-                        time=Seconds(end - start),
-                        tick_length=_TICK_LENGTH,
-                        repeat=False,
-                        start_action=lights_on_action,
-                        end_action=lights_off_action,
-                    ),
-                )
-
-            return action
-
         try:
-            with open(path) as f:
-                l = [Seconds(float(line.strip())) for line in f]
-
-            if len(l) % 2 == 0:
-                i = 0
-                while i < len(l):
-                    start = l[i]
-                    end = l[i + 1]
-                    self._queue.add(
-                        RunAfterTime(
-                            time=start,
-                            tick_length=_TICK_LENGTH,
-                            action=flash(start, end),
-                        ),
-                    )
-                    i += 2
+            async with aiofiles.open(path) as f:
+                l = [float(line.strip()) async for line in f]
         except OSError as e:
             _log.error(f"failed to read light file for '{sound}': {e}")
+            return
+
+        if len(l) % 2 != 0:
+            _log.error("sound file must have an even number of lines")
+            return
+
+        on = False
+        last = 0.0
+        for t in l:
+            await asyncio.sleep(t - last)
+            if on:
+                self._leds.off()
+            else:
+                self._leds.on()
+            on = not on
+            last = t
 
     def speak(self, text: str) -> None:
-        self.stop()
+        if self._task and not self._task.done():
+            _log.warning(
+                "attempted to speak when another sound is in progress",
+            )
+            return
 
-        # We first look for a sound file with the given name, otherwise we pass
-        # the text to espeak
-        filename = sound_filename(text)
-        path = os.path.join(self._sound_dir, filename + ".wav")
-
-        with self._lock:
-            if os.path.exists(path):
-                self._subprocess = subprocess.Popen(
-                    ["aplay", path],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                self._setup_lights_actions(filename)
-            else:
-                self._subprocess = subprocess.Popen(
-                    [self._text_to_speech_command, espeakify(text)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-
-    def stop(self) -> None:
-        with self._lock:
+        async def task() -> None:
             self._leds.off()
-            self._queue.clear()
-            if self._subprocess:
-                self._subprocess.kill()
-                self._subprocess.wait()
-                self._subprocess = None
 
-    def wait(self) -> None:
-        with self._lock:
-            if self._subprocess:
-                self._subprocess.wait()
-                self._subprocess = None
+            filename = sound_filename(text)
+            path = os.path.join(self._sound_dir, filename + ".wav")
+
+            if os.path.exists(path):
+                p = await asyncio.create_subprocess_exec(
+                    "aplay",
+                    path,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+                await self._flash_lights(filename)
+            else:
+                p = await asyncio.create_subprocess_exec(
+                    self._text_to_speech_command,
+                    espeakify(text),
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+
+            await p.wait()
+
+        self._task = asyncio.create_task(task())
+
+    async def stop(self) -> None:
+        self._leds.off()
+        if self._task:
+            self._task.cancel()
+            await self._task
+            self._task = None
+
+    async def wait(self) -> None:
+        if self._task:
+            await self._task
+            self._task = None
 
     @override
-    def disconnect(self) -> None:
-        self.wait()
-        self.stop()
+    async def disconnect(self) -> None:
+        await self.wait()
+        await self.stop()
 
 
 class _Camera(_Actor):
@@ -201,100 +164,96 @@ class _Camera(_Actor):
         super().__init__()
         self._take_picture_command = take_picture_command
         self._output_file = output_file
-        self._lock = threading.Lock()
-        self._handler: Callable[[bytes], None] | None = None
-        self._subprocess: subprocess.Popen[bytes] | None = None
+        self._handler: Callable[[bytes], Awaitable[None]] | None = None
+        self._task: asyncio.Task[None] | None = None
         _log.info(f"created camera; camera found = {self._has_camera()}")
 
     def _has_camera(self) -> bool:
         return os.path.exists("/dev/video0")
 
-    def set_handler(self, h: Callable[[bytes], None]) -> None:
-        with self._lock:
-            self._handler = h
+    def set_handler(self, h: Callable[[bytes], Awaitable[None]]) -> None:
+        if self._handler:
+            _log.warning(
+                "attempted to set image handler when one already exists",
+            )
+            return
+        self._handler = h
 
     def take_picture(self) -> None:
-        def action() -> None:
-            with self._lock:
-                self._subprocess = subprocess.Popen(
-                    [self._take_picture_command, self._output_file],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-
-        def is_idle() -> bool:
-            with self._lock:
-                if not self._subprocess:
-                    return True
-
-                if self._subprocess.poll() is not None:
-                    self._subprocess.wait()
-                    self._subprocess = None
-                    return True
-
-                return False
-
-        def cleanup() -> None:
-            with self._lock:
-                if self._handler:
-                    try:
-                        with open(self._output_file, mode="rb") as f:
-                            self._handler(f.read())
-                    except OSError as e:
-                        _log.error(f"failed to take picture: {e}")
-
-        if self._has_camera():
-            self._queue.add_if_empty(
-                Immediate(action),
-                RunAfterCondition(condition=is_idle, action=cleanup),
+        if not self._handler:
+            _log.warning(
+                "attempted to take a picture when no handler exists",
             )
-        else:
-            _log.info("no camera found")
+            return
+
+        if self._task and not self._task.done():
+            _log.warning(
+                "attempted to take a picture when another one is in progress",
+            )
+            return
+
+        if not self._has_camera():
+            _log.info(
+                "no camera found",
+            )
+
+        async def task() -> None:
+            p = await asyncio.create_subprocess_exec(
+                self._take_picture_command,
+                self._output_file,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await p.wait()
+
+            if self._handler:
+                try:
+                    async with aiofiles.open(self._output_file, mode="rb") as f:
+                        await self._handler(await f.read())
+                except OSError as e:
+                    _log.error(f"failed to take picture: {e}")
+
+        self._task = asyncio.create_task(task())
 
     @override
-    def disconnect(self) -> None:
-        with self._lock:
-            if self._subprocess:
-                self._subprocess.kill()
-                self._subprocess.wait()
-                self._subprocess = None
-            self._handler = None
-        self._queue.clear()
+    async def disconnect(self) -> None:
+        if self._task:
+            self._task.cancel()
+            await self._task
+            self._task = None
+        self._handler = None
 
 
 class _Battery(_Actor):
     def __init__(self) -> None:
         super().__init__()
         self._power_supply = ev3.power_supply()
-        self._lock = threading.Lock()
-        self._handler: Callable[[str], None] | None = None
+        self._task: asyncio.Task[None] | None = None
         _log.info("created battery")
 
     def status(self) -> str:
         return f"{self._power_supply.measured_volts:.2f}"
 
-    def set_handler(self, h: Callable[[str], None]) -> None:
-        with self._lock:
-            self._handler = h
+    def set_handler(self, h: Callable[[str], Awaitable[None]]) -> None:
+        if self._task:
+            _log.warning(
+                "attempted to set battery handler when one already exists",
+            )
+            return
 
-        def handle() -> None:
-            with self._lock:
-                if self._handler:
-                    self._handler(self.status())
+        async def task() -> None:
+            while True:
+                await h(self.status())
+                await asyncio.sleep(10)
 
-        self._queue.add(
-            Repeat(
-                time=Seconds(10),
-                action=handle,
-                tick_length=_TICK_LENGTH,
-            ),
-        )
+        self._task = asyncio.create_task(task())
 
     @override
-    def disconnect(self) -> None:
-        with self._lock:
-            self._handler = None
-        self._queue.clear()
+    async def disconnect(self) -> None:
+        if self._task:
+            self._task.cancel()
+            await self._task
+            self._task = None
 
 
 class _TwoWayControl:
@@ -322,20 +281,7 @@ class _Drive(_Actor):
     _TURN_SPEED = -500
 
     def __init__(self) -> None:
-        def preprocess() -> None:
-            if self._touch_sensor.is_pressed():
-                self.stop()
-            else:
-                with self._lock:
-                    self._ticks_since_last += 1
-
-        def postprocess() -> None:
-            with self._lock:
-                ticks_since_last = self._ticks_since_last
-            if ticks_since_last > 75:  # noqa: PLR2004
-                self.stop()
-
-        super().__init__(preprocess=preprocess, postprocess=postprocess)
+        super().__init__()
 
         def init_wheel(port: str) -> ev3.LargeMotor:
             wheel = ev3.large_motor(port)
@@ -348,9 +294,26 @@ class _Drive(_Actor):
         self._touch_sensor = ev3.touch_sensor(_PLUNGER_PORT)
         self._drive_control = _TwoWayControl()
         self._turn_control = _TwoWayControl()
-        self._lock = threading.Lock()
         self._ticks_since_last = 0
+        self._task: asyncio.Task[None] | None = None
         _log.info("created drive")
+
+    def _init_background_task(self) -> None:
+        self._ticks_since_last = 0
+        if self._task:
+            return
+
+        async def task() -> None:
+            while True:
+                self._ticks_since_last += 1
+                if (
+                    self._touch_sensor.is_pressed()
+                    or self._ticks_since_last > 75  # noqa: PLR2004
+                ):
+                    self.stop()
+                await asyncio.sleep(0.1)
+
+        self._task = asyncio.create_task(task())
 
     def _update_wheel_speeds(self) -> None:
         def set_wheel_speed(wheel: ev3.LargeMotor, speed: float) -> None:
@@ -366,57 +329,41 @@ class _Drive(_Actor):
         set_wheel_speed(self._left_wheel, drive_part + turn_part)
         set_wheel_speed(self._right_wheel, drive_part - turn_part)
 
-    def _control_press_action(
-        self,
-        control: _TwoWayControl,
-        value: float,
-    ) -> Immediate:
-        def action() -> None:
-            control.press(value)
-            self._update_wheel_speeds()
-            with self._lock:
-                self._ticks_since_last = 0
+    def _control_press(self, control: _TwoWayControl, value: float) -> None:
+        self._init_background_task()
+        control.press(value)
+        self._update_wheel_speeds()
 
-        return Immediate(action)
-
-    def _control_release_action(
-        self,
-        control: _TwoWayControl,
-        value: float,
-    ) -> Immediate:
-        def action() -> None:
-            control.release(value)
-            self._update_wheel_speeds()
-            with self._lock:
-                self._ticks_since_last = 0
-
-        return Immediate(action)
+    def _control_release(self, control: _TwoWayControl, value: float) -> None:
+        self._init_background_task()
+        control.release(value)
+        self._update_wheel_speeds()
 
     def drive(self, value: float) -> None:
-        self._queue.add(self._control_press_action(self._drive_control, value))
+        self._control_press(self._drive_control, value)
 
     def drive_release(self, value: float) -> None:
-        self._queue.add(
-            self._control_release_action(self._drive_control, value),
-        )
+        self._control_release(self._drive_control, value)
 
     def turn(self, value: float) -> None:
-        self._queue.add(self._control_press_action(self._turn_control, value))
+        self._control_press(self._turn_control, value)
 
     def turn_release(self, value: float) -> None:
-        self._queue.add(self._control_release_action(self._turn_control, value))
+        self._control_release(self._turn_control, value)
 
     def stop(self) -> None:
-        self._queue.clear()
+        self._ticks_since_last = 0
         self._drive_control.off()
         self._turn_control.off()
         self._update_wheel_speeds()
-        with self._lock:
-            self._ticks_since_last = 0
 
     @override
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         self.stop()
+        if self._task:
+            self._task.cancel()
+            await self._task
+            self._task = None
 
 
 class Head(_Actor):
@@ -424,30 +371,36 @@ class Head(_Actor):
     _HEAD_SPEED = 300
 
     def __init__(self) -> None:
-        def preprocess() -> None:
-            if self._position_out_of_bounds():
-                self.stop()
-
-        super().__init__(preprocess=preprocess)
-
+        super().__init__()
         self._motor = ev3.medium_motor(_HEAD_PORT)
         self._control = _TwoWayControl()
-        self._calibrate()
-        _log.info("created head")
+        self._task: asyncio.Task[None] | None = None
 
-    def _calibrate(self) -> None:
         self._motor.reset()
         self._motor.position = 0
         self._motor.stop_action = Motor.STOP_ACTION_BRAKE
         self._motor.ramp_up_sp = 0
         self._motor.ramp_down_sp = 0
 
-    def _position_out_of_bounds(self) -> bool:
-        return (
-            self._control.value > 0 and self._motor.position > self._HEAD_LIMIT
-        ) or (
-            self._control.value < 0 and self._motor.position < -self._HEAD_LIMIT
-        )
+        _log.info("created head")
+
+    def _init_background_task(self) -> None:
+        if self._task:
+            return
+
+        async def task() -> None:
+            while True:
+                if (
+                    self._control.value > 0
+                    and self._motor.position > self._HEAD_LIMIT
+                ) or (
+                    self._control.value < 0
+                    and self._motor.position < -self._HEAD_LIMIT
+                ):
+                    self.stop()
+                await asyncio.sleep(0.1)
+
+        self._task = asyncio.create_task(task())
 
     def _update_motor_speed(self) -> None:
         speed = self._control.value * self._HEAD_SPEED
@@ -457,57 +410,27 @@ class Head(_Actor):
         else:
             self._motor.run_forever()
 
-    def _control_press_action(self, value: float) -> Immediate:
-        def action() -> None:
-            self._control.press(value)
-            self._update_motor_speed()
-
-        return Immediate(action)
-
-    def _control_release_action(self, value: float) -> Immediate:
-        def action() -> None:
-            self._control.release(value)
-            self._update_motor_speed()
-
-        return Immediate(action)
-
     def turn(self, value: float) -> None:
-        self._queue.add(self._control_press_action(value))
+        self._init_background_task()
+        self._control.press(value)
+        self._update_motor_speed()
 
     def turn_release(self, value: float) -> None:
-        self._queue.add(self._control_release_action(value))
+        self._init_background_task()
+        self._control.release(value)
+        self._update_motor_speed()
 
     def stop(self) -> None:
-        self._queue.clear()
         self._control.off()
         self._update_motor_speed()
 
     @override
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         self.stop()
-
-
-class ControllerThread(threading.Thread):
-    def __init__(self, action: Callable[[], None]) -> None:
-        super().__init__()
-        self._action = action
-        self._daemon = True
-        self._alive = True
-        self._lock = threading.Lock()
-        _log.info("created controller thread")
-
-    def is_alive(self) -> bool:
-        with self._lock:
-            return self._alive
-
-    def stop(self) -> None:
-        with self._lock:
-            self._alive = False
-
-    def run(self) -> None:
-        while self.is_alive():
-            self._action()
-            time.sleep(_TICK_LENGTH)
+        if self._task:
+            self._task.cancel()
+            await self._task
+            self._task = None
 
 
 class Dalek:
@@ -536,46 +459,32 @@ class Dalek:
         self._drive = _Drive()
         self._head = Head()
 
-        self._actors = [
-            self._voice,
-            self._camera,
-            self._battery,
-            self._drive,
-            self._head,
-        ]
-
-    def __enter__(self) -> Self:
-        def process() -> None:
-            for actor in self._actors:
-                actor.process()
-
-        self._thread = ControllerThread(process)
-        self._thread.start()
-
+    async def __aenter__(self) -> Self:
         self._voice.speak(_Voice.COMMENCE_AWAKENING)
-        self._voice.wait()
-        time.sleep(1)
+        await self._voice.wait()
+        await asyncio.sleep(1)
         self._voice.speak(_Voice.EXTERMINATE)
-        self._voice.wait()
+        await self._voice.wait()
 
         _log.info("ready")
         return self
 
-    def disconnect(self) -> None:
-        for actor in self._actors:
-            actor.disconnect()
+    async def disconnect(self) -> None:
+        await self._voice.disconnect()
+        await self._camera.disconnect()
+        await self._battery.disconnect()
+        await self._drive.disconnect()
+        await self._head.disconnect()
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        self.disconnect()
+        await self.disconnect()
         self._voice.speak(_Voice.STATUS_HIBERNATION)
-        self._voice.disconnect()
-        self._thread.stop()
-        self._thread.join()
+        await self._voice.disconnect()
 
     def drive(self, value: float) -> None:
         self._drive.drive(value)
@@ -605,10 +514,10 @@ class Dalek:
     def speak(self, text: str) -> None:
         self._voice.speak(text)
 
-    def stop_speaking(self) -> None:
-        self._voice.stop()
+    async def stop_speaking(self) -> None:
+        await self._voice.stop()
 
-    def set_camera_handler(self, h: Callable[[bytes], None]) -> None:
+    def set_camera_handler(self, h: Callable[[bytes], Awaitable[None]]) -> None:
         self._camera.set_handler(h)
 
     def take_picture(self) -> None:
@@ -617,5 +526,5 @@ class Dalek:
     def battery_status(self) -> str:
         return self._battery.status()
 
-    def set_battery_handler(self, h: Callable[[str], None]) -> None:
+    def set_battery_handler(self, h: Callable[[str], Awaitable[None]]) -> None:
         self._battery.set_handler(h)

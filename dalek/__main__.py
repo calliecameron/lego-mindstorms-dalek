@@ -57,19 +57,13 @@ class Controller:
         self._websocket = websocket
         self._dalek = dalek
 
-        def image_handler(data: bytes) -> None:
-            asyncio.run_coroutine_threadsafe(
-                self._send_image(data),
-                self._websocket.server.get_loop(),
-            )
+        async def image_handler(data: bytes) -> None:
+            await self._send_image(data)
 
         self._dalek.set_camera_handler(image_handler)
 
-        def battery_handler(data: str) -> None:
-            asyncio.run_coroutine_threadsafe(
-                self._send_battery(data),
-                self._websocket.server.get_loop(),
-            )
+        async def battery_handler(data: str) -> None:
+            await self._send_battery(data)
 
         self._dalek.set_battery_handler(battery_handler)
 
@@ -84,7 +78,7 @@ class Controller:
         )
 
     async def _send(self, response: Response, *args: str) -> None:
-        _log.info(f"send {response} {args}")
+        _log.info(f"send {response} {list(args)}")
         await self._websocket.send(json.dumps([response, *args]) + "\n")
 
     async def _send_battery(self, data: str) -> None:
@@ -131,7 +125,7 @@ class Controller:
             else:
                 self._bad_args(command, args, "1")
         elif command == Command.STOP_SOUND:
-            self._dalek.stop_speaking()
+            await self._dalek.stop_speaking()
         elif command == Command.SNAPSHOT:
             self._dalek.take_picture()
         elif command == Command.EXIT:
@@ -212,21 +206,23 @@ async def main() -> None:
                     websocket.server.close()
                     break
         finally:
-            dalek.disconnect()
+            await dalek.disconnect()
             connected = False
             _log.info(f"disconnected from {websocket.remote_address}")
 
-    with Dalek(
-        args.sound_dir,
-        args.text_to_speech_command,
-        args.take_picture_command,
-        args.camera_output_file,
-    ) as dalek:
-        async with serve(_handler, "", PORT) as server:
-            _log.info("network starting")
-            await server.start_serving()
-            await server.wait_closed()
-            _log.info("network stopped")
+    async with (
+        Dalek(
+            args.sound_dir,
+            args.text_to_speech_command,
+            args.take_picture_command,
+            args.camera_output_file,
+        ) as dalek,
+        serve(_handler, "", PORT) as server,
+    ):
+        _log.info("network starting")
+        await server.start_serving()
+        await server.wait_closed()
+        _log.info("network stopped")
 
 
 if __name__ == "__main__":

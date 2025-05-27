@@ -1,3 +1,4 @@
+aiofiles == 24.1.0
 evdev == 1.9.2
 python-ev3dev2 == 2.1.0.post1
 websockets == 15.0.1

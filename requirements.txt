@@ -4,6 +4,10 @@
 #
 #    pip-compile --generate-hashes --strip-extras
 #
+aiofiles==24.1.0 \
+    --hash=sha256:22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c \
+    --hash=sha256:b4ec55f4195e3eb5d7abd1bf7e061763e864dd4954231fb8539a0ef8bb8260e5
+    # via -r requirements.in
 evdev==1.9.2 \
     --hash=sha256:5d3278892ce1f92a74d6bf888cc8525d9f68af85dbe336c95d1c87fb8f423069
     # via -r requirements.in
