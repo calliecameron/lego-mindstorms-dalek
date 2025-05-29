@@ -7,6 +7,8 @@ import json
 import logging
 from collections.abc import Sequence
 from enum import Enum, StrEnum, auto
+from types import TracebackType
+from typing import Self
 
 from websockets import Data
 from websockets.asyncio.server import ServerConnection, serve
@@ -57,15 +59,26 @@ class Controller:
         self._websocket = websocket
         self._dalek = dalek
 
+    async def __aenter__(self) -> Self:
         async def image_handler(data: bytes) -> None:
             await self._send_image(data)
 
-        self._dalek.set_camera_handler(image_handler)
+        await self._dalek.set_camera_handler(image_handler)
 
         async def battery_handler(data: str) -> None:
             await self._send_battery(data)
 
-        self._dalek.set_battery_handler(battery_handler)
+        await self._dalek.set_battery_handler(battery_handler)
+
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        await self._dalek.disconnect()
 
     def _bad_args(
         self,
@@ -87,32 +100,46 @@ class Controller:
     async def _send_image(self, data: bytes) -> None:
         await self._send(Response.SNAPSHOT, base64.b64encode(data).decode())
 
-    def _begin_command(self, control: MovementControl, value: float) -> None:
+    async def _begin_command(
+        self,
+        control: MovementControl,
+        value: float,
+    ) -> None:
         if control == MovementControl.DRIVE:
-            self._dalek.drive(value)
+            await self._dalek.drive(value)
         elif control == MovementControl.TURN:
-            self._dalek.turn(value)
+            await self._dalek.turn(value)
         elif control == MovementControl.HEAD_TURN:
-            self._dalek.head_turn(value)
+            await self._dalek.head_turn(value)
 
-    def _release_command(self, control: MovementControl, value: float) -> None:
+    async def _release_command(
+        self,
+        control: MovementControl,
+        value: float,
+    ) -> None:
         if control == MovementControl.DRIVE:
-            self._dalek.drive_release(value)
+            await self._dalek.drive_release(value)
         elif control == MovementControl.TURN:
-            self._dalek.turn_release(value)
+            await self._dalek.turn_release(value)
         elif control == MovementControl.HEAD_TURN:
-            self._dalek.head_turn_release(value)
+            await self._dalek.head_turn_release(value)
 
     async def handle(self, command: str, args: Sequence[str]) -> Result:
         _log.info(f"recv {command} {args}")
         if command == Command.BEGIN:
             if len(args) == 2:  # noqa: PLR2004
-                self._begin_command(MovementControl(args[0]), float(args[1]))
+                await self._begin_command(
+                    MovementControl(args[0]),
+                    float(args[1]),
+                )
             else:
                 self._bad_args(command, args, "2")
         elif command == Command.RELEASE:
             if len(args) == 2:  # noqa: PLR2004
-                self._release_command(MovementControl(args[0]), float(args[1]))
+                await self._release_command(
+                    MovementControl(args[0]),
+                    float(args[1]),
+                )
             else:
                 self._bad_args(command, args, "2")
         elif command == Command.STOP:
@@ -121,13 +148,13 @@ class Controller:
             self._dalek.toggle_lights()
         elif command == Command.PLAY_SOUND:
             if len(args) == 1:
-                self._dalek.speak(args[0])
+                await self._dalek.speak(args[0])
             else:
                 self._bad_args(command, args, "1")
         elif command == Command.STOP_SOUND:
             await self._dalek.stop_speaking()
         elif command == Command.SNAPSHOT:
-            self._dalek.take_picture()
+            await self._dalek.take_picture()
         elif command == Command.EXIT:
             return Result.SHUTDOWN
         else:
@@ -199,14 +226,13 @@ async def main() -> None:
                 json.dumps([Status.CONNECTED, dalek.battery_status()]),
             )
 
-            c = Controller(websocket, dalek)
-            async for message in websocket:
-                command = parse_message(message)
-                if command and await c.handle(*command) == Result.SHUTDOWN:
-                    websocket.server.close()
-                    break
+            async with Controller(websocket, dalek) as c:
+                async for message in websocket:
+                    command = parse_message(message)
+                    if command and await c.handle(*command) == Result.SHUTDOWN:
+                        websocket.server.close()
+                        break
         finally:
-            await dalek.disconnect()
             connected = False
             _log.info(f"disconnected from {websocket.remote_address}")
 
