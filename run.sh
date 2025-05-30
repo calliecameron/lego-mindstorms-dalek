@@ -21,11 +21,11 @@ if [ -e /etc/os-release ] && grep 'ev3dev' /etc/os-release >/dev/null; then
     fi
 
     function run-python() {
-        PYENV_VERSION="${DALEK_VIRTUALENV}" pyenv exec python3 "${@}"
+        PYENV_VERSION="${DALEK_VIRTUALENV}" pyenv exec python3 "${@}" &
     }
 else
     function run-python() {
-        python3 "${@}"
+        python3 "${@}" &
     }
 fi
 
@@ -33,29 +33,33 @@ WEBSOCKET=''
 HTTP=''
 
 function cleanup() {
+    echo 'LAUNCHER: killing dalek...'
     # shellcheck disable=SC2015
     test -n "${WEBSOCKET}" && kill "${WEBSOCKET}" &>/dev/null || true
+    echo 'LAUNCHER: killing webserver...'
     # shellcheck disable=SC2015
     test -n "${HTTP}" && kill "${HTTP}" &>/dev/null || true
+    echo 'LAUNCHER: waiting for subprocesses to stop...'
     wait
+    echo 'LAUNCHER: done'
     exit 0
 }
 
 trap cleanup SIGINT SIGTERM
 
 echo 'LAUNCHER: starting web server...'
-run-python -m http.server --directory "${THIS_DIR}/html" 12345 &
+run-python -m http.server --directory "${THIS_DIR}/html" 12345
 HTTP="${!}"
-echo 'LAUNCHER: started web server'
+echo "LAUNCHER: started web server, pid ${HTTP}"
 
 echo 'LAUNCHER: starting dalek...'
 run-python -m dalek \
     "${SOUNDS_DIR}" \
     "${THIS_DIR}/utils/text_to_speech.sh" \
     "${THIS_DIR}/utils/take_picture.sh" \
-    "${THIS_DIR}/picture.jpeg" &
+    "${THIS_DIR}/picture.jpeg"
 WEBSOCKET="${!}"
-echo 'LAUNCHER: started dalek'
+echo "LAUNCHER: started dalek, pid ${WEBSOCKET}"
 
 wait "${WEBSOCKET}"
 cleanup
