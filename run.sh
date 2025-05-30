@@ -40,7 +40,7 @@ function cleanup() {
     # shellcheck disable=SC2015
     test -n "${HTTP}" && kill "${HTTP}" &>/dev/null || true
     echo 'LAUNCHER: waiting for subprocesses to stop...'
-    wait
+    wait || true
     echo 'LAUNCHER: done'
     exit 0
 }
@@ -61,5 +61,5 @@ run-python -m dalek \
 WEBSOCKET="${!}"
 echo "LAUNCHER: started dalek, pid ${WEBSOCKET}"
 
-wait "${WEBSOCKET}"
+wait "${WEBSOCKET}" || true
 cleanup

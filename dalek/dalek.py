@@ -6,7 +6,8 @@ import os
 import os.path
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager, suppress
 from types import TracebackType
 from typing import Self, override
 
@@ -59,6 +60,17 @@ class _Leds:
 
 
 class _Actor(ABC):
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        await self.disconnect()
+
     @abstractmethod
     async def disconnect(self) -> None:
         raise NotImplementedError
@@ -150,7 +162,8 @@ class _Voice(_Actor):
         self._leds.off()
         if self._task:
             self._task.cancel()
-            await self._task
+            with suppress(asyncio.CancelledError):
+                await self._task
             self._task = None
 
     async def _wait(self) -> None:
@@ -247,7 +260,8 @@ class _Camera(_Actor):
         async with self._lock:
             if self._task:
                 self._task.cancel()
-                await self._task
+                with suppress(asyncio.CancelledError):
+                    await self._task
                 self._task = None
             self._handler = None
 
@@ -282,7 +296,8 @@ class _Battery(_Actor):
         async with self._lock:
             if self._task:
                 self._task.cancel()
-                await self._task
+                with suppress(asyncio.CancelledError):
+                    await self._task
                 self._task = None
 
 
@@ -403,7 +418,8 @@ class _Drive(_Actor):
             self.stop()
             if self._task:
                 self._task.cancel()
-                await self._task
+                with suppress(asyncio.CancelledError):
+                    await self._task
                 self._task = None
 
 
@@ -472,7 +488,8 @@ class Head(_Actor):
             self.stop()
             if self._task:
                 self._task.cancel()
-                await self._task
+                with suppress(asyncio.CancelledError):
+                    await self._task
                 self._task = None
 
 
@@ -502,15 +519,27 @@ class Dalek:
         self._drive = _Drive()
         self._head = Head()
 
-    async def __aenter__(self) -> Self:
-        await self._voice.speak(_Voice.COMMENCE_AWAKENING)
-        await self._voice.wait()
-        await asyncio.sleep(1)
-        await self._voice.speak(_Voice.EXTERMINATE)
-        await self._voice.wait()
+    @asynccontextmanager
+    async def run(self) -> AsyncGenerator[Self]:
+        try:
+            async with (
+                self._voice,
+                self._camera,
+                self._battery,
+                self._drive,
+                self._head,
+            ):
+                await self._voice.speak(_Voice.COMMENCE_AWAKENING)
+                await self._voice.wait()
+                await asyncio.sleep(1)
+                await self._voice.speak(_Voice.EXTERMINATE)
+                await self._voice.wait()
 
-        _log.info("ready")
-        return self
+                _log.info("ready")
+                yield self
+        finally:
+            await self._voice.speak(_Voice.STATUS_HIBERNATION)
+            await self._voice.disconnect()
 
     async def disconnect(self) -> None:
         await self._voice.disconnect()
@@ -518,16 +547,6 @@ class Dalek:
         await self._battery.disconnect()
         await self._drive.disconnect()
         await self._head.disconnect()
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        await self.disconnect()
-        await self._voice.speak(_Voice.STATUS_HIBERNATION)
-        await self._voice.disconnect()
 
     async def drive(self, value: float) -> None:
         await self._drive.drive(value)

@@ -242,7 +242,7 @@ async def main() -> None:
             args.text_to_speech_command,
             args.take_picture_command,
             args.camera_output_file,
-        ) as dalek,
+        ).run() as dalek,
         serve(_handler, "", PORT) as server,
     ):
         _log.info("network starting")
