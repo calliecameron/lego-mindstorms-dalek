@@ -9,11 +9,52 @@ class Motor:
     def __init__(self, address: str) -> None:
         super().__init__()
         self._address = address
-        self.stop_action = "coast"
-        self.position = 0.0
-        self.speed_sp = 0.0
-        self.ramp_up_sp = 0.0
-        self.ramp_down_sp = 0.0
+        self._stop_action = "coast"
+        self._position = 0.0
+        self._speed_sp = 0.0
+        self._ramp_up_sp = 0.0
+        self._ramp_down_sp = 0.0
+
+    @property
+    def stop_action(self) -> str:
+        return self._stop_action
+
+    @stop_action.setter
+    def stop_action(self, a: str) -> None:
+        self._stop_action = a
+
+    @property
+    def position(self) -> float:
+        return self._position
+
+    @position.setter
+    def position(self, p: float) -> None:
+        self._position = p
+
+    @property
+    def speed_sp(self) -> float:
+        return self._speed_sp
+
+    @speed_sp.setter
+    def speed_sp(self, s: float) -> None:
+        self._speed_sp = s
+        self._msg(f"speed_sp {self._speed_sp}")
+
+    @property
+    def ramp_up_sp(self) -> float:
+        return self._ramp_up_sp
+
+    @ramp_up_sp.setter
+    def ramp_up_sp(self, r: float) -> None:
+        self._ramp_up_sp = r
+
+    @property
+    def ramp_down_sp(self) -> float:
+        return self._ramp_down_sp
+
+    @ramp_down_sp.setter
+    def ramp_down_sp(self, r: float) -> None:
+        self._ramp_down_sp = r
 
     def reset(self) -> None:
         self._msg("reset")

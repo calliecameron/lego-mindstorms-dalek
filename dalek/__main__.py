@@ -3,11 +3,13 @@
 import argparse
 import asyncio
 import logging
+from contextlib import suppress
 
 from websockets.asyncio.server import serve
 
+from dalek.controller import handler as controller_handler
 from dalek.dalek import Dalek
-from dalek.websocket import handler
+from dalek.websocket import handler as websocket_handler
 
 _log = logging.getLogger(__name__)
 
@@ -34,12 +36,20 @@ async def main() -> None:
             args.take_picture_command,
             args.camera_output_file,
         ).run() as dalek,
-        serve(handler(dalek), "", PORT) as server,
+        serve(websocket_handler(dalek), "", PORT) as server,
     ):
+        _log.info("controller starting")
+        controller_task: asyncio.Task[None] = asyncio.create_task(
+            controller_handler(dalek),
+        )
         _log.info("network starting")
         await server.start_serving()
         await server.wait_closed()
         _log.info("network stopped")
+        controller_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await controller_task
+        _log.info("controller stopped")
 
 
 if __name__ == "__main__":

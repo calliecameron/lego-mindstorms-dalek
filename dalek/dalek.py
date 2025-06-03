@@ -8,6 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
+from enum import StrEnum
 from types import TracebackType
 from typing import Self, override
 
@@ -30,6 +31,42 @@ _LED_PORT = OUTPUT_C
 _PLUNGER_PORT = INPUT_2
 
 _log = logging.getLogger(__name__)
+
+
+class Sounds(StrEnum):
+    BRING_HIM_TO_ME = "Bring him to me"
+    CAN_I_BE_OF_ASSISTANCE = "Can I be of assistance?"
+    CEASE_TALKING = "Cease talking"
+    COMMENCE_AWAKENING = "Commence awakening"
+    DALEKS_ARE_SUPREME = "Daleks are supreme"
+    DALEKS_DO_NOT_QUESTION_ORDERS = "Daleks do not question orders"
+    DALEKS_HAVE_NO_CONCEPT_OF_WORRY = "Daleks have no concept of worry"
+    DOCTOR = "Doctor?"
+    EXPLAIN = "Explain"
+    EXTERMINATE = "Exterminate!"
+    EXTERMINATE_3 = "Exterminate, exterminate, exterminate!"
+    GUN = "Gun"
+    IDENTIFY_YOURSELF = "Identify yourself"
+    IT_IS_THE_DOCTOR = "It is the Doctor"
+    I_BRING_YOU_THE_HUMAN = "I bring you the human"
+    I_HAVE_DUTIES_TO_PERFORM = "I have duties to perform"
+    PLEASE_EXCUSE_ME = "Please excuse me"
+    REPORT = "Report"
+    SOCIAL_INTERACTION_WILL_CEASE = "Social interaction will cease"
+    STATUS_HIBERNATION = "Status hibernation"
+    THAT_IS_INCORRECT = "That is incorrect"
+    THEN_HEAR_ME_TALK_NOW = "Then hear me talk now"
+    THE_DOCTOR = "The Doctor?"
+    THE_DOCTOR_MUST_DIE = "The Doctor must die"
+    THIS_HUMAN_IS_OUR_BEST_OPTION = "This human is our best option"
+    WHICH_OF_YOU_IS_LEAST_IMPORTANT = "Which of you is least important?"
+    WHY = "Why?"
+    WOULD_YOU_CARE_FOR_SOME_TEA = "Would you care for some tea?"
+    YOUR_LOYALTY_WILL_BE_REWARDED = "Your loyalty will be rewarded"
+    YOU_WILL_BE_NECESSARY = "You will be necessary"
+    YOU_WILL_FOLLOW = "You will follow"
+    YOU_WILL_IDENTIFY = "You will identify"
+    YOU_WOULD_MAKE_A_GOOD_DALEK = "You would make a good Dalek"
 
 
 class _Leds:
@@ -77,11 +114,6 @@ class _Actor(ABC):
 
 
 class _Voice(_Actor):
-    EXTERMINATE = "Exterminate"
-    GUN = "Gun"
-    COMMENCE_AWAKENING = "Commence awakening"
-    STATUS_HIBERNATION = "Status hibernation"
-
     def __init__(
         self,
         sound_dir: str,
@@ -529,16 +561,16 @@ class Dalek:
                 self._drive,
                 self._head,
             ):
-                await self._voice.speak(_Voice.COMMENCE_AWAKENING)
+                await self._voice.speak(Sounds.COMMENCE_AWAKENING)
                 await self._voice.wait()
                 await asyncio.sleep(1)
-                await self._voice.speak(_Voice.EXTERMINATE)
+                await self._voice.speak(Sounds.EXTERMINATE)
                 await self._voice.wait()
 
                 _log.info("ready")
                 yield self
         finally:
-            await self._voice.speak(_Voice.STATUS_HIBERNATION)
+            await self._voice.speak(Sounds.STATUS_HIBERNATION)
             await self._voice.disconnect()
 
     async def disconnect(self) -> None:
