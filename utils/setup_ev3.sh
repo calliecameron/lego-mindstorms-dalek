@@ -29,7 +29,10 @@ if [ ! -d "${OPENSSL_DIR}" ]; then
     sha256sum -c checksum
     tar xf 'openssl-3.5.0.tar.gz'
     cd 'openssl-3.5.0'
-    ./Configure "--prefix=${OPENSSL_DIR}" "--openssldir=${OPENSSL_DIR}/ssl"
+    ./Configure \
+        "--prefix=${OPENSSL_DIR}" \
+        "--openssldir=${OPENSSL_DIR}/ssl" \
+        'CFLAGS=-march=armv5te -mcpu=arm926ej-s'
     make "-j$(nproc)"
     mkdir "${OPENSSL_DIR}"
     make "-j$(nproc)" install
@@ -56,5 +59,6 @@ eval "$(pyenv init --path)"
 
 LDFLAGS="-Wl,-rpath,${OPENSSL_DIR}/lib" \
     CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} --with-openssl-rpath=auto" \
+    PYTHON_CFLAGS='-march=armv5te -mcpu=arm926ej-s' \
     pyenv install "${DALEK_PYTHON_VERSION}"
 pyenv virtualenv "${DALEK_PYTHON_VERSION}" "${DALEK_VIRTUALENV}"
