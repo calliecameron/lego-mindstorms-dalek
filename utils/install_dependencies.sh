@@ -41,7 +41,7 @@ if [ -e /etc/os-release ] && grep 'ev3dev' /etc/os-release >/dev/null; then
 
     PYENV_VERSION="${DALEK_VIRTUALENV}" \
         CFLAGS='-march=armv5te -mcpu=arm926ej-s' \
-        pyenv exec pip install \
+        pyenv exec pip --no-cache-dir install \
         -r "${DALEK_ROOT}/requirements.txt" \
         --no-binary ':all:'
 fi
