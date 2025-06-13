@@ -84,6 +84,7 @@ def medium_motor(address: str) -> MediumMotor:
 
 
 class TouchSensor(Protocol):
+    @property
     def is_pressed(self) -> bool: ...
 
 

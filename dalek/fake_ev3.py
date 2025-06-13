@@ -82,6 +82,7 @@ class TouchSensor:
         super().__init__()
         self._address = address
 
+    @property
     def is_pressed(self) -> bool:
         return False
 

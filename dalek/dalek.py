@@ -381,8 +381,7 @@ class _Drive(_Actor):
             while True:
                 self._ticks_since_last += 1
                 if (
-                    self._touch_sensor.is_pressed()
-                    or self._ticks_since_last > 75  # noqa: PLR2004
+                    self._touch_sensor.is_pressed or self._ticks_since_last > 75  # noqa: PLR2004
                 ):
                     self.stop()
                 await asyncio.sleep(0.1)
