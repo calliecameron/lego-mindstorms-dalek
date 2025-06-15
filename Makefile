@@ -41,10 +41,10 @@ clean:
 deepclean: clean
 	rm -f .deps-installed
 	rm -rf node_modules
-	rm -rf html/bootstrap-3.3.7-dist
-	rm -rf html/jquery-3.2.1.min.js
-	rm -rf html/jquery-ui-1.12.1
-	rm -rf html/jquery-ui-themes-1.12.1
-	rm -rf html/font-awesome-4.7.0
+	rm -rf html/bootstrap-5.3.6-dist
+	rm -rf html/jquery-3.7.1.min.js
+	rm -rf html/jquery-ui-1.14.1
+	rm -rf html/jquery-ui-themes-1.14.1
+	rm -rf html/fontawesome-free-6.7.2-web
 	rm -rf html/bootstrap.min.css
-	rm -rf html/jquery.ui.touch-punch.min.js
+	rm -rf html/jquery.ui.touch-punch.js

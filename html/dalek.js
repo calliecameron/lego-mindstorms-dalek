@@ -1,3 +1,5 @@
+import { Spinner } from "./spin.js";
+
 $(document).ready(function () {
   var READY = "ready";
   var BUSY = "busy";
@@ -194,7 +196,6 @@ $(document).ready(function () {
 
   function SpinnerWidget(parent_id) {
     var parent = $(parent_id)[0];
-    // eslint-disable-next-line no-undef
     var spinner = new Spinner({
       color: "#3d86cb",
       lines: 13,

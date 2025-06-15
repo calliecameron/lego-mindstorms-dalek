@@ -24,13 +24,13 @@ sudo -S true
 sudo apt-get -y install streamer espeak imagemagick wget unzip
 
 cd "${DALEK_ROOT}/html"
-download https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
-download https://jqueryui.com/resources/download/jquery-ui-themes-1.12.1.zip
-download https://jqueryui.com/resources/download/jquery-ui-1.12.1.zip
-wget https://code.jquery.com/jquery-3.2.1.min.js -O jquery-3.2.1.min.js
-download https://fontawesome.com/v4/assets/font-awesome-4.7.0.zip
-wget https://bootswatch.com/3/darkly/bootstrap.min.css -O bootstrap.min.css
-wget https://raw.githubusercontent.com/furf/jquery-ui-touch-punch/4bc009145202d9c7483ba85f3a236a8f3470354d/jquery.ui.touch-punch.min.js -O jquery.ui.touch-punch.min.js
+download https://github.com/twbs/bootstrap/releases/download/v5.3.6/bootstrap-5.3.6-dist.zip
+download https://jqueryui.com/resources/download/jquery-ui-themes-1.14.1.zip
+download https://jqueryui.com/resources/download/jquery-ui-1.14.1.zip
+wget https://code.jquery.com/jquery-3.7.1.min.js -O jquery-3.7.1.min.js
+download https://use.fontawesome.com/releases/v6.7.2/fontawesome-free-6.7.2-web.zip
+wget https://bootswatch.com/5/darkly/bootstrap.min.css -O bootstrap.min.css
+wget https://raw.githubusercontent.com/RWAP/jquery-ui-touch-punch/54639b5f9cd58d896f3ab2f83759c24acb68d9d4/jquery.ui.touch-punch.js -O jquery.ui.touch-punch.js
 
 if [ -e /etc/os-release ] && grep 'ev3dev' /etc/os-release >/dev/null; then
     source "${THIS_DIR}/pyenv.bash"
