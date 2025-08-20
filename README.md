@@ -66,9 +66,16 @@ Taking a selfie in the mirror:
 
 ## Usage
 
+Select `lego-mindstorms-dalek/run.sh` from the brick's file browser (or you can run it through SSH).
+
+### With WiFi and a browser
+
 1. Make sure the Dalek and the computer are on the same WiFi network.
-2. Select `lego-mindstorms-dalek/run.sh` from the brick's file browser (or you can run it through SSH).
-3. Find the Dalek's IP address (displayed on the brick), and in your browser go to port 12345. E.g. if the Dalek is 192.168.0.2, the address you want is `http://192.168.0.2:12345`.
+2. Find the Dalek's IP address (displayed on the brick), and in your browser go to port 12345. E.g. if the Dalek is 192.168.0.2, the address you want is `http://192.168.0.2:12345`.
+
+### With bluetooth and a PS4 controller
+
+1. Connect the controller to the brick via bluetooth.
 
 ## Credits
 
